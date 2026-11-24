@@ -481,7 +481,7 @@
    "rot": 0,
    "size": [0.73, 0.6, 0.012],
    "name": "入户地垫、免打孔挂钩",
-   "color": "#B9A17F",
+   "color": "#DDD0BB",
    "price": 80,
    "priceBasis": "user"
   },
@@ -495,7 +495,7 @@
    "name": "宜家 弗瑞顿 转角沙发床带储物",
    "spec": "230×151×66 cm，贵妃位朝阳台；选浅色款",
    "variant": "right",
-   "color": "#D2CCC1",
+   "color": "#EAE7E2",
    "price": 2999,
    "priceBasis": "user",
    "note": "贵妃位能躺，拉开是 140×204 的床，客人可以睡这里；贵妃位下面能放被子。"
@@ -599,7 +599,7 @@
    "size": [1.6, 2.3, 0.009],
    "name": "棉麻地毯",
    "spec": "160×230 cm，米白",
-   "color": "#E0D7C6",
+   "color": "#F1EDE4",
    "price": 260,
    "priceBasis": "user"
   },
@@ -707,7 +707,7 @@
    "name": "卫生间浴帘和伸缩杆",
    "spec": "做干湿分区",
    "variant": "single",
-   "color": "#EEF0EE",
+   "color": "#F7F8F7",
    "elevation": 0.06,
    "price": 80,
    "priceBasis": "user"
@@ -732,7 +732,7 @@
    "rot": 0,
    "size": [0.5, 0.45, 0.012],
    "name": "吸水地垫",
-   "color": "#E0D7C6",
+   "color": "#F1EDE4",
    "note": "含在置物架那一项里"
   },
   {
@@ -820,7 +820,7 @@
    "size": [1.6, 2, 0.009],
    "name": "床边地毯",
    "spec": "160×200 cm",
-   "color": "#D2C7B3",
+   "color": "#EAE5DA",
    "price": 120,
    "priceBasis": "user",
    "optional": true
@@ -962,7 +962,7 @@
    "price": 600,
    "priceBasis": "user",
    "optional": true,
-   "color": "#B9BCBD",
+   "color": "#DDDFDF",
    "note": "已有电竞椅就不用买。"
   },
   {
