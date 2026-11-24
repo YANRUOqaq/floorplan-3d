@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>家具库 · 户型 3D</title>
+</head>
+<body class="gallery">
+<header class="top">
+  <div class="brand"><span class="logo" aria-hidden="true"></span><b>家具库</b><span class="muted" id="count"></span></div>
+  <div class="actions"><a class="btn" href="./">回到编辑器</a></div>
+</header>
+<main class="gallery-main">
+  <div class="chips" id="views" role="group" aria-label="视角"></div>
+  <div class="viewer" id="viewer" tabindex="0" aria-label="家具库 3D 预览">
+    <div class="info" id="info" hidden aria-live="polite"></div>
+  </div>
+  <p class="note">每种家具按默认尺寸摆一件，有变体的每个变体各一件。点家具看名称和尺寸。</p>
+</main>
+<script type="module" src="/src/gallery.ts"></script>
+</body>
+</html>

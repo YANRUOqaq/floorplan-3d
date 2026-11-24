@@ -61,7 +61,8 @@ export class Viewer {
     container.prepend(r.domElement);
     const pmrem = new THREE.PMREMGenerator(r);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    this.scene.environmentIntensity = 0.9;   // 和原页面截图对比后调的
+    // 环境光：r187 的 RoomEnvironment 比原页面用的 r147 亮约 1.5 倍（同机位截图逐点对比），调到 0.5 后墙、木头、布料的亮度和原页面相差 5% 以内
+    this.scene.environmentIntensity = 0.5;
 
     const c = this.controls = new OrbitControls(this.camera, r.domElement);
     c.enableDamping = true; c.dampingFactor = 0.08; c.enabled = false;
@@ -115,7 +116,7 @@ export class Viewer {
       el.innerHTML = `${esc(l.name)}<small>${l.area.toFixed(1)}㎡</small>`;
       this.labelBox.appendChild(el); return { el, v: new THREE.Vector3(l.x, 1.25, l.z) };
     });
-    if (this.selected && !b.itemGroups.has(this.selected)) this.select(null); else if (this.selected) this.select(this.selected);
+    this.highlight(this.selected && b.itemGroups.has(this.selected) ? this.selected : null);
     const keep = b.views.find(v => v.key === this.current);
     const first = keep ?? b.views.find(v => !v.orbit && house.rooms.find(r => r.id === v.key)?.type === "living") ?? b.views.find(v => !v.orbit) ?? b.views[0];
     this.mode3d = "";
@@ -214,12 +215,15 @@ export class Viewer {
     if (g && g.visible) g.traverse(o => { if ((o as THREE.Mesh).isMesh && o.raycast !== noRay && !o.userData.blob) b.expandByObject(o); });
     return b;
   }
-  select(id: string | null) {
+  /** 只画选中框，不通知外面（外面决定选中谁，再调这个） */
+  highlight(id: string | null) {
     this.selected = id; this.dirty = true;
-    if (!id) { this.selBox.visible = false; this.ev.onSelect?.(null); return; }
-    const b = this.itemBox(id);
+    const b = id ? this.itemBox(id) : new THREE.Box3();
     this.selBox.box.copy(b); this.selBox.visible = !b.isEmpty();
-    this.ev.onSelect?.(id);
+  }
+  /** 用户在 3D 里点选：交给外面处理；外面没接就自己高亮 */
+  private pickSelect(id: string | null) {
+    if (this.ev.onSelect) this.ev.onSelect(id); else this.highlight(id);
   }
   /** 走到家具所在的房间、转头看它并选中 */
   locate(id: string) {
@@ -227,7 +231,7 @@ export class Viewer {
     const room = it.room && this.views.find(v => v.key === it.room && !v.orbit) ? it.room : this.views.find(v => !v.orbit)?.key;
     if (!room) return;
     this.setView(room, false, () => {
-      this.select(id);
+      this.pickSelect(id);
       const b = this.itemBox(id); if (b.isEmpty()) return;
       const c = b.getCenter(new THREE.Vector3()); this.lookAt(c.x, Math.min(c.y, 1.4), c.z);
     });
@@ -319,9 +323,9 @@ export class Viewer {
       downInfo = null;
       if (!tap) return;
       const p = this.pick(e.clientX, e.clientY);
-      if (p.id) this.select(p.id);
-      else if (p.floor && this.mode3d === "walk") { this.select(null); this.walkTo(p.floor); }
-      else this.select(null);
+      if (p.id) this.pickSelect(p.id);
+      else if (p.floor && this.mode3d === "walk") { this.pickSelect(null); this.walkTo(p.floor); }
+      else this.pickSelect(null);
     };
     el.addEventListener("pointerup", endPointer);
     el.addEventListener("pointercancel", e => { pointers.delete(e.pointerId); downInfo = null; pinch0 = null; });

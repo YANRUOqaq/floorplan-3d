@@ -8,6 +8,7 @@ import example from "../examples/01-room.json";
 import { emptyHouse, parseHouse, type House } from "./model/schema";
 import { Store } from "./model/store";
 import { Viewer } from "./three/viewer";
+import { Editor } from "./editor/editor";
 import type { App, SidePanel } from "./ui/app";
 import { $, $$, download, esc, toast } from "./ui/dom";
 import { renderInfo } from "./ui/info";
@@ -15,36 +16,39 @@ import { renderPlanPanel } from "./ui/plan";
 
 const store = new Store(Store.restore(localStorage) ?? parseHouse(example), localStorage);
 
-function showTab(tab: "3d" | "2d") {
-  $$("[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
-  $("#pane-3d").hidden = tab !== "3d";
-  $("#pane-2d").hidden = tab !== "2d";
-  if (tab === "3d") app.viewer.refresh();
+function showTab(t: "3d" | "2d") {
+  tab = t;
+  $$("[data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+  $("#pane-3d").hidden = t !== "3d";
+  $("#pane-2d").hidden = t !== "2d";
+  if (t === "3d") app.viewer.refresh(); else editor?.render();
 }
 function showSide(side: SidePanel) {
   $$("[data-side]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.side === side)));
   for (const s of ["plan", "ai", "list"]) $("#side-" + s).hidden = s !== side;
 }
 
+let tab: "3d" | "2d" = "3d";
 const app: App = {
   store,
   viewer: null as unknown as Viewer,
   selected: null,
   showSide, showTab,
+  /** 选中任何东西（墙、门窗、房间、家具）都走这里，3D、2D、面板一起更新 */
   select(id) {
-    if (app.viewer.selected !== id) app.viewer.select(id);   // 会回调 onSelect
-    else onSelect(id);
+    app.selected = id;
+    app.viewer.highlight(id && store.house.furniture.some(f => f.id === id) ? id : null);
+    if (id && tab === "2d") showSide("plan");
+    renderInfo(app, $("#info"));
+    renderPlanPanel(app, $("#side-plan"));
+    editor?.render();
   },
 };
-function onSelect(id: string | null) {
-  app.selected = id;
-  renderInfo(app, $("#info"));
-  renderPlanPanel(app, $("#side-plan"));
-}
+let editor: Editor | null = null;
 
 /* ---------- 3D ---------- */
 app.viewer = new Viewer($("#viewer"), {
-  onSelect,
+  onSelect: id => app.select(id),
   onViews: (views, current) => {
     const chip = (v: { key: string; name: string }) => `<button type="button" class="chip" data-view="${esc(v.key)}" aria-pressed="${v.key === current}">${esc(v.name)}</button>`;
     $("#views").innerHTML = `<span class="chip-label">站到</span>` + views.filter(v => !v.orbit).map(chip).join("") +
@@ -68,7 +72,9 @@ function onChange(h: House) {
   app.viewer.load(h);
   renderPlanPanel(app, $("#side-plan"));
   renderInfo(app, $("#info"));
+  editor?.render();
 }
+editor = new Editor($("#pane-2d"), app);
 store.subscribe(onChange);
 onChange(store.house);
 
@@ -116,4 +122,4 @@ $$("[data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.datase
 $$("[data-side]").forEach(b => b.addEventListener("click", () => showSide(b.dataset.side as SidePanel)));
 
 // 开发时在浏览器控制台里调试用
-if (import.meta.env.DEV) (window as unknown as { app: App }).app = app;
+if (import.meta.env.DEV) Object.assign(window, { app, editor });

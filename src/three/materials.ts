@@ -57,7 +57,7 @@ export function createMaterials() {
   const fabric = (c: THREE.Color, o: MatOpts = {}) => M(c, Object.assign({ map: t.fabric, bumpMap: t.fabric, bumpScale: 0.6, roughness: 0.96 }, o));
   const L = legacy;
   const mat = {
-    paint: M(L("#F5F3EF"), { map: t.paint, bumpMap: t.paint, bumpScale: 0.2, roughness: 0.92, envMapIntensity: 0.36 }),
+    paint: M(L("#F5F3EF"), { map: t.paint, bumpMap: t.paint, bumpScale: 0.2, roughness: 0.92 }),
     ext: M(L("#E7E4DF"), { map: t.paint, roughness: 0.95 }),
     wallTile: M(L("#FFFFFF"), { map: t.wallTile, bumpMap: t.wallTile, bumpScale: 0.4, roughness: 0.1, envMapIntensity: 1 }),
     cutTop: M(L("#C9C4BC"), { roughness: 1 }),
@@ -127,8 +127,7 @@ export function createMaterials() {
     c.setRGB(c.r / g.r, c.g / g.g, c.b / g.b, THREE.LinearSRGBColorSpace);
     return M(c, { map: t.floor, bumpMap: t.floor, bumpScale: 0.6, roughness: 0.48, envMapIntensity: 0.85 });
   });
-  // 墙面环境光反射调低：r187 的 RoomEnvironment 侧向比原页面（r147）亮，按截图对比调到接近
-  const wallPaint = (hex: string) => memo("paint:" + hex, () => M(srgb(hex), { map: t.paint, bumpMap: t.paint, bumpScale: 0.2, roughness: 0.92, envMapIntensity: 0.36 }));
+  const wallPaint = (hex: string) => memo("paint:" + hex, () => M(srgb(hex), { map: t.paint, bumpMap: t.paint, bumpScale: 0.2, roughness: 0.92 }));
 
   return { mat, clothCols, woodFinish, woodDark, fabricColor, curtainColor, floorWood, wallPaint, wood, fabric };
 }

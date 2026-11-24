@@ -117,7 +117,8 @@ export function plant(mats: { pot: THREE.Material; soil: THREE.Material; trunk: 
  * 点光源。intensity 沿用原页面的数值：r155 以后灯光按物理单位计算，原来的数值要乘 π，
  * 衰减方式也变了，所以再按画面效果乘一个系数（见 LIGHT_SCALE）。
  */
-export const LIGHT_SCALE = Math.PI;
+// π 是旧版光照单位的换算；0.4 是按原页面截图对比调的：r155 起点光源按距离平方衰减，灯旁边的墙会过亮
+export const LIGHT_SCALE = Math.PI * 0.4;
 export function pointLight(color: number, intensity: number, dist: number, x: number, y: number, z: number, parent: THREE.Object3D) {
   const l = new THREE.PointLight(color, intensity * LIGHT_SCALE, dist, 2); l.position.set(x, y, z); parent.add(l); return l;
 }

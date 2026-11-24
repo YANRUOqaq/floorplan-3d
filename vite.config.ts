@@ -4,6 +4,10 @@ import { defineConfig } from "vitest/config";
 // 本地开发（npm run dev）时用根路径。
 export default defineConfig(({ command }) => ({
   base: command === "build" ? "/floorplan-3d/" : "/",
+  build: {
+    // 两个页面：编辑器（index.html）和家具库（gallery.html）
+    rollupOptions: { input: { main: "index.html", gallery: "gallery.html" } },
+  },
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],

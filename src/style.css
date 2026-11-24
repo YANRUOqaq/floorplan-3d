@@ -127,3 +127,71 @@ input[type="color"] { width: 40px; height: 30px; padding: 0 2px; border: 1px sol
   .hint { right: auto; left: 8px; top: 8px; bottom: auto; font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { .fade { transition: none; } }
+
+/* 家具库陈列页 */
+.gallery-main { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; height: calc(100% - var(--top-h)); }
+.gallery .top a.btn { text-decoration: none; color: inherit; }
+.gallery .brand .muted { font-size: 13px; }
+
+/* 2D 编辑器 */
+.ed-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; flex: none; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: transparent; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--ai); color: var(--paper); }
+.btn[aria-pressed="true"] { border-color: var(--ai); background: var(--ai-soft); color: var(--ai); }
+.ed-opt { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.ed-opt select { width: auto; max-width: 14em; }
+.ed-bgopt input { width: 90px; }
+.ed-sep { width: 1px; height: 22px; background: var(--line); }
+.ed-calib { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--ai-soft); border: 1px solid var(--ai); border-radius: 8px; padding: 8px 12px; flex: none; }
+.ed-calib input { width: 8em; display: inline-block; }
+.ed-canvas { position: relative; flex: 1; min-height: 360px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
+.ed-canvas svg { display: block; width: 100%; height: 100%; user-select: none; touch-action: none; }
+.ed-canvas svg:focus { outline: none; }
+.ed-hint { position: absolute; left: 10px; top: 10px; right: 10px; pointer-events: none; font-size: 12.5px; color: var(--muted); background: color-mix(in srgb, var(--card) 88%, transparent); border-radius: 6px; padding: 3px 8px; width: fit-content; max-width: calc(100% - 20px); }
+.ed-grid { stroke: var(--line); stroke-width: 1; fill: none; opacity: 0.6; }
+.ed-room { fill: color-mix(in srgb, var(--oak-soft) 55%, transparent); stroke: var(--oak); stroke-width: 1; stroke-dasharray: 4 3; }
+.ed-room.t-kitchen, .ed-room.t-bath { fill: color-mix(in srgb, var(--ai-soft) 70%, transparent); }
+.ed-room.t-balcony { fill: color-mix(in srgb, var(--ok) 12%, transparent); }
+.ed-room.sel { stroke: var(--ai); stroke-width: 2; stroke-dasharray: none; }
+.ed-rlabel { font-size: 12px; fill: var(--ink); text-anchor: middle; paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
+.ed-rlabel tspan { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
+.ed-wall { fill: var(--ink); opacity: 0.82; }
+.ed-wall.k-parapet, .ed-wall.k-railing { opacity: 0.45; }
+.ed-wall.sel { fill: var(--ai); opacity: 1; }
+.ed-gap { fill: var(--card); stroke: var(--muted); stroke-width: 0.8; }
+.ed-gap.t-opening { stroke-dasharray: 3 2; }
+.ed-gap.sel { stroke: var(--ai); stroke-width: 2; }
+.ed-leaf { stroke: var(--oak); stroke-width: 2; }
+.ed-swing { stroke: var(--oak); stroke-width: 1; fill: none; stroke-dasharray: 3 2; }
+.ed-win { stroke: var(--ai); stroke-width: 1.2; }
+.ed-dim { font-family: var(--f-mono); font-size: 10.5px; fill: var(--muted); text-anchor: middle; dominant-baseline: middle; paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
+.ed-dim.sel { fill: var(--ai); font-weight: 600; }
+.ed-item { fill: color-mix(in srgb, var(--oak) 22%, transparent); stroke: var(--oak); stroke-width: 1; }
+.ed-item.fixed { fill: color-mix(in srgb, var(--muted) 18%, transparent); stroke: var(--muted); }
+.ed-item.sel { stroke: var(--ai); stroke-width: 2.2; fill: color-mix(in srgb, var(--ai) 18%, transparent); }
+.ed-front { stroke: var(--oak); stroke-width: 3; fill: none; stroke-linecap: round; }
+.ed-ilabel { font-size: 10.5px; fill: var(--ink); text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+.ed-handle { fill: var(--card); stroke: var(--ai); stroke-width: 2; cursor: move; }
+.ed-draft { fill: none; stroke: var(--ai); stroke-width: 3; stroke-linejoin: round; }
+.ed-draft.room { stroke-width: 1.5; stroke-dasharray: 5 3; fill: color-mix(in srgb, var(--ai) 10%, transparent); }
+.ed-live { font-family: var(--f-mono); font-size: 12px; fill: var(--ai); paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
+.ed-guide { stroke: var(--ai); stroke-width: 1; stroke-dasharray: 2 3; }
+.ed-snap { fill: none; stroke: var(--ai); stroke-width: 2; }
+.ed-cursor { fill: var(--ai); }
+.ed-ghost { stroke: var(--ai); stroke-width: 6; opacity: 0.6; stroke-linecap: butt; }
+.ed-ghost-item { fill: color-mix(in srgb, var(--ai) 15%, transparent); stroke: var(--ai); stroke-dasharray: 4 3; }
+.ed-calpt { fill: var(--warn); stroke: var(--card); stroke-width: 2; }
+.ed-calline { stroke: var(--warn); stroke-width: 2; }
+.ed-scale path { stroke: var(--ink); stroke-width: 2; }
+.ed-scale text { font-size: 11px; fill: var(--ink); font-family: var(--f-mono); }
+.ed-empty { font-size: 14px; fill: var(--muted); text-anchor: middle; }
+
+/* 属性表单 */
+.props { border-color: var(--ai); }
+.props-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.props-head h3 { font-size: 14px; }
+.props-head .mono { font-size: 11px; font-weight: 400; }
+.props-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+.props-grid .wide { grid-column: 1 / -1; }
+.props-grid .check { display: flex; align-items: center; gap: 6px; font-size: 13px; grid-column: 1 / -1; }

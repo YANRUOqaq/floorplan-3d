@@ -5,6 +5,7 @@ import { CATALOG_BY_TYPE } from "../model/catalog";
 import { THEMES } from "../three/materials";
 import type { App } from "./app";
 import { esc } from "./dom";
+import { renderProps } from "./props";
 
 export function renderPlanPanel(app: App, box: HTMLElement) {
   const h = app.store.house;
@@ -14,6 +15,7 @@ export function renderPlanPanel(app: App, box: HTMLElement) {
   }).join("");
   const items = h.furniture.map(f => `<li><button type="button" data-item="${esc(f.id)}" aria-current="${f.id === app.selected}"><span>${esc(f.name || CATALOG_BY_TYPE[f.type]?.nameZh || f.type)}</span><span class="muted">${esc(h.rooms.find(r => r.id === f.room)?.name ?? "")}</span></button></li>`).join("");
   box.innerHTML = `
+    <section class="card props" id="props" hidden></section>
     <section class="field"><h3>整体风格</h3>
       <div class="themes">${THEME_IDS.map(id => {
         const t = THEMES[id];
@@ -24,13 +26,15 @@ export function renderPlanPanel(app: App, box: HTMLElement) {
     </section>
     <section class="field"><h3>房间（${h.rooms.length}）</h3>${h.rooms.length ? `<ul class="list">${rooms}</ul>` : '<p class="note">还没有房间。</p>'}</section>
     <section class="field"><h3>家具（${h.furniture.length}）</h3>${h.furniture.length ? `<ul class="list">${items}</ul>` : '<p class="note">还没有家具。可以在 2D 编辑里放，也可以让大模型布置。</p>'}</section>`;
+  renderProps(app, box.querySelector("#props") as HTMLElement);
   box.onclick = e => {
     const t = e.target as HTMLElement;
+    if (t.closest("#props")) return;
     const th = t.closest<HTMLElement>("[data-theme-id]")?.dataset.themeId;
     if (th && th !== h.theme) app.store.commit("换风格", d => { d.theme = th as typeof d.theme; });
     const room = t.closest<HTMLElement>("[data-room]")?.dataset.room;
     if (room) { app.showTab("3d"); app.viewer.setView(room); }
     const item = t.closest<HTMLElement>("[data-item]")?.dataset.item;
-    if (item) { app.showTab("3d"); app.viewer.locate(item); }
+    if (item) app.select(item);
   };
 }

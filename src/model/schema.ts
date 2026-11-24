@@ -128,8 +128,10 @@ export type Extra = z.infer<typeof Extra>;
 
 /** 描图底图的标定：图片本身存在浏览器的 IndexedDB 里，不写进 JSON */
 export const Background = z.object({
-  /** 图上 1 米对应多少像素 */
+  /** 图上横向 1 米对应多少像素 */
   pxPerM: z.number().positive(),
+  /** 图上纵向 1 米对应多少像素。手机拍的户型图常被拉伸，横竖比例不同；不填就和横向一样，也表示还没单独标定过 */
+  pxPerMz: z.number().positive().optional(),
   /** 坐标原点 (0,0) 在图上的像素位置 */
   origin: Vec2,
   opacity: z.number().min(0).max(1).default(0.5),
