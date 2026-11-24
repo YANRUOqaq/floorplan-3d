@@ -1,9 +1,13 @@
 /**
- * 户型图识别（实验功能）：让能看图的大模型按“图片像素坐标”返回墙、门窗、房间，
+ * 户型图识别（实验功能）：让能看图的大模型按图片上的相对坐标返回墙、门窗、房间，
  * 由程序换算成米并整理（横平竖直、合并端点、门窗挂到最近的墙上），作为草稿交给编辑器。
  *
- * 为什么让大模型给像素而不是米：它读图上的尺寸数字常常读错，算比例也容易错；
+ * 为什么让大模型给图上坐标而不是米：它读图上的尺寸数字常常读错，算比例也容易错；
  * 比例已经由用户标定过，程序换算更可靠。识别结果只当草稿，用户要对照底图检查。
+ *
+ * 为什么用 0~1000 的相对坐标而不是像素：通义千问 Qwen3-VL 这类识图模型训练时就用这种坐标定位，
+ * 2026-11-24 用 qwen3-vl-plus 识别同一张图，相对坐标的两次都比像素坐标的一次略准（次数少，只作参考）；
+ * 换成别家模型也只是换一种说法，不依赖图片尺寸。
  */
 import { z } from "zod";
 import type { Background, House, Opening, Room, Vec2, Wall } from "../model/schema";
@@ -20,18 +24,31 @@ export const Recognition = z.object({
 });
 export type Recognition = z.infer<typeof Recognition>;
 
-export function recognitionPrompt(w: number, h: number) {
-  return `这是一张住宅户型图，图片宽 ${w} 像素、高 ${h} 像素，左上角是 (0, 0)，x 向右，y 向下。
-请识别图中这一户的墙、门窗和房间，坐标一律用这张图片的像素坐标，只输出一个 JSON 对象：
-{"walls":[{"a":[x,y],"b":[x,y],"thickness":墙厚像素}],
+/** 模型返回的坐标范围：图片宽和高都当作 1000 */
+export const NORM = 1000;
+
+export function recognitionPrompt() {
+  return `这是一张住宅户型图。坐标用相对坐标：把图片的宽和高都看成 ${NORM}，左上角是 (0, 0)，右下角是 (${NORM}, ${NORM})，x 向右，y 向下。
+请识别图中这一户的墙、门窗和房间，只输出一个 JSON 对象：
+{"walls":[{"a":[x,y],"b":[x,y],"thickness":墙厚（按图片宽度算的相对长度）}],
  "openings":[{"type":"door|entry|sliding|window|opening","a":[x,y],"b":[x,y]}],
  "rooms":[{"name":"图上写的房间名，比如 主卧","type":"${ROOM_TYPES.join("|")}","polygon":[[x,y],...]}]}
 要求：
 - 墙用中心线表示，a、b 是墙的两个端点；一面直墙只给一段，墙和墙在拐角处的端点要重合。
 - 门窗的 a、b 是洞口在墙中心线上的两端；入户门用 entry，推拉门用 sliding，没有门扇的门洞用 opening。
 - 房间多边形沿墙中心线描，按顺序给出各个角。
-- 只识别图中主要的那一户；图上的家具、尺寸标注线、轴线编号都不要当成墙。
+- 只识别图中主要的那一户；图片的边缘不是墙，图上的家具、尺寸标注线、轴线编号也都不要当成墙。
 - 不确定的部分宁可不给。不要输出 JSON 以外的文字。`;
+}
+
+/** 0~NORM 的相对坐标 → 发送图的像素坐标（墙厚按宽度换算） */
+export function toPixels(rec: Recognition, w: number, h: number): Recognition {
+  const P = (p: Vec2): Vec2 => [p[0] * w / NORM, p[1] * h / NORM];
+  return {
+    walls: rec.walls.map(x => ({ a: P(x.a), b: P(x.b), ...(x.thickness ? { thickness: x.thickness * w / NORM } : {}) })),
+    openings: rec.openings.map(o => ({ type: o.type, a: P(o.a), b: P(o.b) })),
+    rooms: rec.rooms.map(r => ({ ...r, polygon: r.polygon.map(P) })),
+  };
 }
 
 export interface CropMapping {
@@ -110,15 +127,15 @@ function guessType(name: string): Room["type"] {
   return rules.find(([re]) => re.test(name))?.[1] ?? "other";
 }
 
-/** 调用识图模型。image 是 data URL */
+/** 调用识图模型。image 是 data URL，w、h 是这张图的像素尺寸；返回的坐标已换成这张图的像素 */
 export async function recognize(s: LlmSettings, image: string, w: number, h: number, opts: { signal?: AbortSignal; fetchFn?: typeof fetch } = {}): Promise<Recognition> {
-  if (!s.visionModel) throw new LlmError("还没填识图模型。在“大模型”面板的设置里填一个能看图的模型（比如通义千问的 qwen-vl-max）。");
-  const text = await chat(s, [{ role: "user", content: [{ type: "text", text: recognitionPrompt(w, h) }, { type: "image_url", image_url: { url: image } }] }], { model: s.visionModel, signal: opts.signal, fetchFn: opts.fetchFn });
+  if (!s.visionModel) throw new LlmError("还没填识图模型。在“大模型”面板的设置里填一个能看图的模型（比如通义千问的 qwen3-vl-plus）。");
+  const text = await chat(s, [{ role: "user", content: [{ type: "text", text: recognitionPrompt() }, { type: "image_url", image_url: { url: image } }] }], { model: s.visionModel, signal: opts.signal, fetchFn: opts.fetchFn });
   let raw: unknown;
   try { raw = extractJson(text); } catch { throw new LlmError("识图模型没有返回 JSON。可以换一个识图模型再试。"); }
   const r = Recognition.safeParse(raw);
   if (!r.success) throw new LlmError("识图模型返回的格式不对：" + r.error.issues.slice(0, 3).map(i => i.path.join(".") + " " + i.message).join("；"));
-  return r.data;
+  return toPixels(r.data, w, h);
 }
 
 /**

@@ -15,7 +15,7 @@ export interface Provider {
 
 export const PROVIDERS: Provider[] = [
   { id: "deepseek", name: "DeepSeek", baseURL: "https://api.deepseek.com", model: "deepseek-chat", visionModel: "", keyUrl: "https://platform.deepseek.com/api_keys" },
-  { id: "qwen", name: "通义千问（阿里云百炼）", baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", visionModel: "qwen-vl-max", keyUrl: "https://bailian.console.aliyun.com/" },
+  { id: "qwen", name: "通义千问（阿里云百炼）", baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", model: "qwen-plus", visionModel: "qwen3-vl-plus", keyUrl: "https://bailian.console.aliyun.com/" },
   { id: "kimi", name: "Kimi（月之暗面）", baseURL: "https://api.moonshot.cn/v1", model: "kimi-latest", visionModel: "kimi-latest", keyUrl: "https://platform.moonshot.cn/console/api-keys" },
   { id: "doubao", name: "豆包（火山方舟）", baseURL: "https://ark.cn-beijing.volces.com/api/v3", model: "", visionModel: "", keyUrl: "https://console.volcengine.com/ark" },
   { id: "openai", name: "OpenAI", baseURL: "https://api.openai.com/v1", model: "gpt-4o-mini", visionModel: "gpt-4o-mini", keyUrl: "https://platform.openai.com/api-keys" },

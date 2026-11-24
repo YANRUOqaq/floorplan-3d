@@ -21,7 +21,7 @@ function check(s: LlmSettings, model: string) {
 async function explain(r: Response): Promise<string> {
   let detail = "";
   try { const j = await r.json(); detail = j?.error?.message ?? j?.message ?? JSON.stringify(j).slice(0, 200); } catch { /* 不是 JSON */ }
-  const hint = r.status === 401 ? "Key 不对或已失效" : r.status === 402 ? "账户余额不足" : r.status === 404 ? "接口地址或模型名不对" : r.status === 429 ? "请求太频繁或额度用完了" : r.status >= 500 ? "厂商服务器出错，稍后再试" : "";
+  const hint = r.status === 401 ? "Key 不对或已失效" : r.status === 402 ? "账户余额不足" : r.status === 404 ? "接口地址或模型名不对；模型会下线换代，可以点“获取模型列表”看现在能用哪些" : r.status === 429 ? "请求太频繁或额度用完了" : r.status >= 500 ? "厂商服务器出错，稍后再试" : "";
   return `请求失败（HTTP ${r.status}${hint ? "，" + hint : ""}）${detail ? "：" + detail : ""}`;
 }
 

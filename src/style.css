@@ -120,6 +120,7 @@ input[type="color"] { width: 40px; height: 30px; padding: 0 2px; border: 1px sol
   .viewer { flex: none; height: clamp(340px, 62vh, 560px); }
   .side { border-left: 0; border-top: 1px solid var(--line); }
   .side-body { overflow: visible; }
+  .chat-log { max-height: 70vh; }
   .top { height: auto; flex-wrap: wrap; padding-block: 8px; }
   .brand { flex-basis: 100%; }
   .proj-name { width: auto; flex: 1; }
@@ -199,7 +200,8 @@ input[type="color"] { width: 40px; height: 30px; padding: 0 2px; border: 1px sol
 /* 大模型面板 */
 .llm-set summary { cursor: pointer; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .llm-set[open] summary { margin-bottom: 6px; }
-.chat-log { display: flex; flex-direction: column; gap: 10px; min-height: 120px; }
+/* 对话记录在自己的框里滚动：面板高度有限，记录变长时不能压到下面的快捷提问和输入框上 */
+.chat-log { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 120px; overflow-y: auto; }
 .msg { border-radius: 10px; padding: 8px 12px; font-size: 13.5px; max-width: 100%; overflow-wrap: anywhere; }
 .msg.user { align-self: flex-end; background: var(--ai); color: var(--paper); max-width: 88%; white-space: pre-wrap; }
 .msg.ai { background: var(--paper); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }

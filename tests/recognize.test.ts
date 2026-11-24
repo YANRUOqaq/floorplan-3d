@@ -60,12 +60,16 @@ describe("识图请求", () => {
     await expect(recognize({ provider: "x", baseURL: "https://a", model: "m", visionModel: "", apiKey: "k" }, "data:", 10, 10, { fetchFn: f })).rejects.toThrow(LlmError);
     expect(called).toBe(false);
   });
-  it("图片按 image_url 发送，用识图模型", async () => {
+  it("图片按 image_url 发送，用识图模型；模型给的 0~1000 相对坐标换回这张图的像素", async () => {
     let body: any;
-    const f = (async (_u: string, init: RequestInit) => { body = JSON.parse(String(init.body)); return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(rec) } }] })); }) as unknown as typeof fetch;
-    const r = await recognize({ provider: "x", baseURL: "https://a", model: "m", visionModel: "vl", apiKey: "k" }, "data:image/jpeg;base64,AAA", 48, 38, { fetchFn: f });
+    const reply = { walls: [{ a: [0, 500], b: [1000, 500], thickness: 10 }], openings: [{ type: "door", a: [250, 500], b: [500, 500] }], rooms: [{ name: "主卧", polygon: [[0, 0], [1000, 0], [1000, 1000]] }] };
+    const f = (async (_u: string, init: RequestInit) => { body = JSON.parse(String(init.body)); return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reply) } }] })); }) as unknown as typeof fetch;
+    const r = await recognize({ provider: "x", baseURL: "https://a", model: "m", visionModel: "vl", apiKey: "k" }, "data:image/jpeg;base64,AAA", 800, 1200, { fetchFn: f });
     expect(body.model).toBe("vl");
+    expect(body.messages[0].content[0].text).toMatch(/看成 1000/);
     expect(body.messages[0].content[1]).toEqual({ type: "image_url", image_url: { url: "data:image/jpeg;base64,AAA" } });
-    expect(r.walls.length).toBe(5);
+    expect(r.walls[0]).toEqual({ a: [0, 600], b: [800, 600], thickness: 8 });   // 墙厚按图宽换算
+    expect(r.openings[0].a).toEqual([200, 600]);
+    expect(r.rooms[0].polygon[2]).toEqual([800, 1200]);
   });
 });

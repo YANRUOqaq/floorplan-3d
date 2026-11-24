@@ -14,7 +14,7 @@ interface Msg { role: "user" | "assistant" | "error"; text: string; reply?: LlmR
 
 const QUICK = [
   "按房间用途把空着的房间布置好，尺寸要放得下，不要挡门",
-  "整体换成奶油风，地板和墙面颜色也一起调",
+  "整体换成奶油风",
   "给没标价的家具估个价，再补上床垫、床品这些清单项",
   "检查一下有没有家具挡门或者太挤，帮我调整",
 ];
@@ -86,7 +86,7 @@ export function initChat(app: App, box: HTMLElement) {
       const body = p ? `
         <ul class="ops">${p.lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>
         ${p.errors.length ? `<div class="note">跳过了 ${p.errors.length} 条：</div><ul class="ops bad">${p.errors.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}
-        ${p.warnings.length ? `<div class="note">摆放问题（照样可以应用，之后在 2D 里拖一下）：</div><ul class="ops warn">${p.warnings.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}
+        ${p.warnings.length ? `<div class="note">要留意（照样可以应用，摆放问题之后在 2D 里拖一下）：</div><ul class="ops warn">${p.warnings.map(l => `<li>${esc(l)}</li>`).join("")}</ul>` : ""}
         ${m.state === "pending" ? `<div class="row"><button type="button" class="btn small primary" data-apply="${i}">应用这些修改</button><button type="button" class="btn small" data-dismiss="${i}">不用了</button></div>`
           : m.state === "applied" ? '<p class="note">已应用。不满意可以点顶栏的“撤销”。</p>' : '<p class="note">没有应用。</p>'}` : "";
       return `<div class="msg ai"><div>${esc(m.text)}</div>${m.repaired ? '<p class="note">第一次回复的格式不对，已经让它自动改了一次。</p>' : ""}${body}</div>`;
@@ -119,7 +119,11 @@ export function initChat(app: App, box: HTMLElement) {
     msgs.push({ role: "user", text: content }); render();
     text.value = "";
     busy = new AbortController();
-    q("#chat-send").hidden = true; q("#chat-stop").hidden = false; q("#chat-status").textContent = "大模型在想……一般要 10 到 60 秒";
+    q("#chat-send").hidden = true; q("#chat-stop").hidden = false;
+    // 显示已等的秒数：2026-11-24 用通义千问实测一般 10 到 20 秒，网络不好时等过 3 分多钟，光写“在想”分不清是不是卡住了
+    const t0 = Date.now(), tick = () => { q("#chat-status").textContent = `大模型在想……已等 ${Math.round((Date.now() - t0) / 1000)} 秒`; };
+    tick();
+    const timer = setInterval(tick, 1000);
     try {
       const r = await askAssistant(s, app.store.house, turns, content, { signal: busy.signal });
       turns.push({ role: "user", text: content }, { role: "assistant", text: r.reply.reply });
@@ -128,6 +132,7 @@ export function initChat(app: App, box: HTMLElement) {
       if ((e as Error).name === "AbortError") msgs.push({ role: "error", text: "已停止。" });
       else msgs.push({ role: "error", text: e instanceof LlmError ? e.message : `出错了：${(e as Error).message}` });
     } finally {
+      clearInterval(timer);
       busy = null; q("#chat-send").hidden = false; q("#chat-stop").hidden = true; q("#chat-status").textContent = "";
       render();
     }
