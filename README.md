@@ -113,4 +113,4 @@ examples/         示例方案
 
 ## 许可
 
-MIT。three.js 是 MIT 许可。示例 `examples/01-room.json` 是按一张公开的户型图手工换算的一户，只有墙体和房间尺寸，不含原图。
+MIT。three.js 是 MIT 许可。示例 `examples/01-room.json` 是按一张公开的户型图手工换算的一户，加上一套软装方案（家具摆放和参考价格），不含户型图原图。
