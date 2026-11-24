@@ -1,0 +1,25 @@
+{
+  "name": "floorplan-3d",
+  "version": "0.1.0",
+  "description": "上传户型图，描出墙和门窗，自动生成可以走动的 3D 模型；接入自己的大模型 API 布置家具、换配色、出采购清单。",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "^0.187.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/three": "^0.187.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
+}

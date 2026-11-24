@@ -1,0 +1,1131 @@
+{
+ "version": 1,
+ "name": "01 房原木改造（示例）",
+ "height": 2.75,
+ "theme": "natural",
+ "walls": [
+  {
+   "id": "w1",
+   "a": [0, 0],
+   "b": [0, 11.65],
+   "thickness": 0.2,
+   "openings": []
+  },
+  {
+   "id": "w2",
+   "a": [0, 0],
+   "b": [1.6, 0],
+   "thickness": 0.2,
+   "openings": [
+    {
+     "id": "d1",
+     "type": "entry",
+     "offset": 0.25,
+     "width": 1,
+     "bottom": 0,
+     "top": 2.1,
+     "hinge": "a",
+     "side": -1
+    }
+   ]
+  },
+  {
+   "id": "w3",
+   "a": [1.6, 0],
+   "b": [1.6, 3.9],
+   "thickness": 0.12,
+   "openings": [
+    {
+     "id": "d2",
+     "type": "sliding",
+     "offset": 1.7,
+     "width": 1.4,
+     "bottom": 0,
+     "top": 2.1,
+     "panels": 2
+    }
+   ]
+  },
+  {
+   "id": "w4",
+   "a": [1.6, 0],
+   "b": [3.75, 0],
+   "thickness": 0.2,
+   "openings": [
+    {
+     "id": "d3",
+     "type": "sliding",
+     "offset": 0.25,
+     "width": 0.9,
+     "bottom": 0,
+     "top": 2.1,
+     "panels": 1
+    }
+   ]
+  },
+  {
+   "id": "w5",
+   "a": [3.75, 0],
+   "b": [3.75, 5.85],
+   "thickness": 0.2,
+   "openings": []
+  },
+  {
+   "id": "w6",
+   "a": [1.6, 3.9],
+   "b": [3.75, 3.9],
+   "thickness": 0.12,
+   "openings": []
+  },
+  {
+   "id": "w7",
+   "a": [3.75, 3.25],
+   "b": [7.5, 3.25],
+   "thickness": 0.2,
+   "openings": [
+    {
+     "id": "win4",
+     "type": "window",
+     "offset": 0.45,
+     "width": 0.55,
+     "bottom": 1.3,
+     "top": 2.2
+    }
+   ]
+  },
+  {
+   "id": "w8",
+   "a": [5.15, 3.25],
+   "b": [5.15, 5.85],
+   "thickness": 0.12,
+   "openings": []
+  },
+  {
+   "id": "w9",
+   "a": [7.5, 3.25],
+   "b": [7.5, 5.85],
+   "thickness": 0.2,
+   "openings": [
+    {
+     "id": "d5",
+     "type": "opening",
+     "offset": 0.15,
+     "width": 0.9,
+     "bottom": 0,
+     "top": 2.35
+    }
+   ]
+  },
+  {
+   "id": "w10",
+   "a": [7.5, 3.35],
+   "b": [8.15, 3.35],
+   "thickness": 0.1,
+   "openings": []
+  },
+  {
+   "id": "w11",
+   "a": [7.5, 4.35],
+   "b": [8.15, 4.35],
+   "thickness": 0.1,
+   "openings": []
+  },
+  {
+   "id": "w12",
+   "a": [8.1, 3.3],
+   "b": [8.1, 4.4],
+   "thickness": 0.12,
+   "openings": [
+    {
+     "id": "win6",
+     "type": "window",
+     "offset": 0.1,
+     "width": 0.9,
+     "bottom": 0.45,
+     "top": 2.35,
+     "rail": true
+    }
+   ]
+  },
+  {
+   "id": "w13",
+   "a": [3.75, 5.85],
+   "b": [9.25, 5.85],
+   "thickness": 0.12,
+   "openings": [
+    {
+     "id": "d7",
+     "type": "door",
+     "offset": 0.3,
+     "width": 0.7,
+     "bottom": 0,
+     "top": 2.05,
+     "hinge": "b",
+     "side": 1
+    },
+    {
+     "id": "d8",
+     "type": "door",
+     "offset": 1.55,
+     "width": 0.8,
+     "bottom": 0,
+     "top": 2.05,
+     "hinge": "a",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "id": "w14",
+   "a": [3.75, 7.02],
+   "b": [6.4, 7.02],
+   "thickness": 0.12,
+   "openings": [
+    {
+     "id": "d9",
+     "type": "door",
+     "offset": 0.15,
+     "width": 0.8,
+     "bottom": 0,
+     "top": 2.05,
+     "hinge": "a",
+     "side": -1
+    }
+   ]
+  },
+  {
+   "id": "w15",
+   "a": [6.4, 5.85],
+   "b": [6.4, 10.15],
+   "thickness": 0.12,
+   "openings": [
+    {
+     "id": "d10",
+     "type": "door",
+     "offset": 0.15,
+     "width": 0.9,
+     "bottom": 0,
+     "top": 2.05,
+     "hinge": "a",
+     "side": 1
+    }
+   ]
+  },
+  {
+   "id": "w16",
+   "a": [3.75, 7.02],
+   "b": [3.75, 10.15],
+   "thickness": 0.12,
+   "openings": []
+  },
+  {
+   "id": "w17",
+   "a": [9.25, 5.85],
+   "b": [9.25, 10.15],
+   "thickness": 0.2,
+   "openings": []
+  },
+  {
+   "id": "w18",
+   "a": [0, 10.15],
+   "b": [3.75, 10.15],
+   "thickness": 0.2,
+   "openings": [
+    {
+     "id": "d11",
+     "type": "sliding",
+     "offset": 0.25,
+     "width": 3.25,
+     "bottom": 0,
+     "top": 2.4,
+     "panels": 4
+    }
+   ]
+  },
+  {
+   "id": "w19",
+   "a": [3.75, 10.15],
+   "b": [9.25, 10.15],
+   "thickness": 0.2,
+   "openings": [
+    {
+     "id": "win12",
+     "type": "window",
+     "offset": 0.6,
+     "width": 1.5,
+     "bottom": 0.6,
+     "top": 2.3,
+     "rail": true
+    },
+    {
+     "id": "win13",
+     "type": "window",
+     "offset": 3.5,
+     "width": 1.5,
+     "bottom": 0.6,
+     "top": 2.3,
+     "rail": true
+    }
+   ]
+  },
+  {
+   "id": "w20",
+   "a": [3.75, 10.15],
+   "b": [3.75, 11.65],
+   "thickness": 0.2,
+   "openings": []
+  },
+  {
+   "id": "w21",
+   "a": [0, 11.65],
+   "b": [3.75, 11.65],
+   "thickness": 0.1,
+   "height": 1.1,
+   "kind": "railing",
+   "openings": []
+  },
+  {
+   "id": "w22",
+   "a": [1.6, -1.45],
+   "b": [1.6, 0],
+   "thickness": 0.12,
+   "height": 1.1,
+   "kind": "parapet",
+   "openings": []
+  },
+  {
+   "id": "w23",
+   "a": [3.75, -1.45],
+   "b": [3.75, 0],
+   "thickness": 0.12,
+   "height": 1.1,
+   "kind": "parapet",
+   "openings": []
+  },
+  {
+   "id": "w24",
+   "a": [1.6, -1.45],
+   "b": [3.75, -1.45],
+   "thickness": 0.12,
+   "height": 1.1,
+   "kind": "parapet",
+   "openings": []
+  }
+ ],
+ "rooms": [
+  {
+   "id": "passage",
+   "name": "玄关",
+   "type": "entry",
+   "polygon": [[0, 0], [1.6, 0], [1.6, 3.9], [0, 3.9]],
+   "floor": "wood",
+   "wall": "paint"
+  },
+  {
+   "id": "living",
+   "name": "客餐厅",
+   "type": "living",
+   "polygon": [[0, 3.9], [3.75, 3.9], [3.75, 10.15], [0, 10.15]],
+   "floor": "wood",
+   "wall": "paint"
+  },
+  {
+   "id": "kitchen",
+   "name": "厨房",
+   "type": "kitchen",
+   "polygon": [[1.6, 0], [3.75, 0], [3.75, 3.9], [1.6, 3.9]],
+   "floor": "tileSmall",
+   "wall": "tile"
+  },
+  {
+   "id": "util",
+   "name": "生活阳台",
+   "type": "balcony",
+   "polygon": [[1.6, -1.45], [3.75, -1.45], [3.75, 0], [1.6, 0]],
+   "floor": "tileSmall",
+   "wall": "exterior",
+   "outdoor": true
+  },
+  {
+   "id": "bath",
+   "name": "卫生间",
+   "type": "bath",
+   "polygon": [[3.75, 3.25], [5.15, 3.25], [5.15, 5.85], [3.75, 5.85]],
+   "floor": "tileSmall",
+   "wall": "tile"
+  },
+  {
+   "id": "guest",
+   "name": "客卧书房",
+   "type": "study",
+   "polygon": [[5.15, 3.25], [7.5, 3.25], [7.5, 5.85], [5.15, 5.85]],
+   "floor": "wood",
+   "wall": "paint"
+  },
+  {
+   "id": "niche",
+   "name": "飘窗",
+   "type": "other",
+   "polygon": [[7.5, 3.35], [8.1, 3.35], [8.1, 4.35], [7.5, 4.35]],
+   "floor": "wood",
+   "wall": "paint"
+  },
+  {
+   "id": "hall",
+   "name": "过道",
+   "type": "hall",
+   "polygon": [[3.75, 5.85], [6.4, 5.85], [6.4, 7.02], [3.75, 7.02]],
+   "floor": "wood",
+   "wall": "paint"
+  },
+  {
+   "id": "gaming",
+   "name": "衣帽电竞间",
+   "type": "bedroom",
+   "polygon": [[3.75, 7.02], [6.4, 7.02], [6.4, 10.15], [3.75, 10.15]],
+   "floor": "wood",
+   "wall": "paint"
+  },
+  {
+   "id": "master",
+   "name": "主卧",
+   "type": "bedroom",
+   "polygon": [[6.4, 5.85], [9.25, 5.85], [9.25, 10.15], [6.4, 10.15]],
+   "floor": "wood",
+   "wall": "paint"
+  },
+  {
+   "id": "balcony",
+   "name": "阳台",
+   "type": "balcony",
+   "polygon": [[0, 10.15], [3.75, 10.15], [3.75, 11.65], [0, 11.65]],
+   "floor": "tile",
+   "wall": "exterior",
+   "outdoor": true
+  }
+ ],
+ "furniture": [
+  {
+   "id": "fx-counter",
+   "type": "kitchen_counter",
+   "room": "kitchen",
+   "pos": [3.35, 1.35],
+   "rot": -90,
+   "size": [2.5, 0.6, 0.82],
+   "name": "橱柜台面（原有，贴白色防油贴）",
+   "variant": "sink-left",
+   "finish": "white",
+   "fixed": true
+  },
+  {
+   "id": "fx-toilet",
+   "type": "toilet",
+   "room": "bath",
+   "pos": [4.165, 4.56],
+   "rot": 90,
+   "size": [0.42, 0.64, 0.8],
+   "name": "马桶（原有）",
+   "fixed": true
+  },
+  {
+   "id": "fx-basin",
+   "type": "basin",
+   "room": "bath",
+   "pos": [4.075, 5.375],
+   "rot": 90,
+   "size": [0.45, 0.45, 0.86],
+   "name": "洗手台（原有）",
+   "fixed": true
+  },
+  {
+   "id": "fx-shower",
+   "type": "shower",
+   "room": "bath",
+   "pos": [3.9, 3.62],
+   "rot": 90,
+   "size": [0.15, 0.15, 1.96],
+   "name": "淋浴（原有）",
+   "fixed": true
+  },
+  {
+   "id": "e1",
+   "type": "shoe_cabinet",
+   "room": "passage",
+   "pos": [1.383, 0.65],
+   "rot": -90,
+   "size": [1.04, 0.325, 1.11],
+   "name": "鞋柜",
+   "spec": "白柜身原木台面，100×30×110 cm",
+   "finish": "white",
+   "price": 450,
+   "priceBasis": "user",
+   "note": "放进门左手边（厨房那面墙），门往右边墙开，不挡鞋柜。"
+  },
+  {
+   "id": "e2",
+   "type": "bench",
+   "room": "passage",
+   "pos": [0.275, 1.65],
+   "rot": 90,
+   "size": [0.8, 0.35, 0.45],
+   "name": "实木换鞋凳",
+   "spec": "80×35×45 cm",
+   "price": 150,
+   "priceBasis": "user"
+  },
+  {
+   "id": "e3",
+   "type": "rug",
+   "room": "passage",
+   "pos": [0.785, 0.55],
+   "rot": 0,
+   "size": [0.73, 0.6, 0.012],
+   "name": "入户地垫、免打孔挂钩",
+   "color": "#B9A17F",
+   "price": 80,
+   "priceBasis": "user"
+  },
+  {
+   "id": "l1",
+   "type": "sofa_l",
+   "room": "living",
+   "pos": [2.935, 8.51],
+   "rot": -90,
+   "size": [2.28, 1.51, 0.7],
+   "name": "宜家 弗瑞顿 转角沙发床带储物",
+   "spec": "230×151×66 cm，贵妃位朝阳台；选浅色款",
+   "variant": "right",
+   "color": "#D2CCC1",
+   "price": 2999,
+   "priceBasis": "user",
+   "note": "贵妃位能躺，拉开是 140×204 的床，客人可以睡这里；贵妃位下面能放被子。"
+  },
+  {
+   "id": "l2",
+   "type": "coffee_table",
+   "room": "living",
+   "pos": [2.15, 8.1],
+   "rot": 0,
+   "size": [0.6, 0.6, 0.45],
+   "name": "实木小圆茶几（带万向轮）",
+   "spec": "直径 60 cm，高 45 cm",
+   "variant": "round",
+   "price": 260,
+   "priceBasis": "user",
+   "note": "带轮，躺贵妃位或展开沙发床时推到一边。"
+  },
+  {
+   "id": "l3",
+   "type": "tv_stand",
+   "room": "living",
+   "pos": [0.3, 8.4],
+   "rot": 90,
+   "size": [1.6, 0.4, 0.47],
+   "name": "原木电视柜",
+   "spec": "160×40×45 cm",
+   "price": 350,
+   "priceBasis": "user",
+   "optional": true,
+   "note": "不看电视可以不买，或换成矮书柜放投影仪。"
+  },
+  {
+   "id": "o1",
+   "type": "tv",
+   "room": "living",
+   "pos": [0.285, 8.4],
+   "rot": 90,
+   "size": [1.22, 0.16, 0.85],
+   "name": "电视（自备）",
+   "elevation": 0.47
+  },
+  {
+   "id": "l4",
+   "type": "dining_table",
+   "room": "living",
+   "pos": [2.375, 4.9],
+   "rot": 90,
+   "size": [1.2, 0.75, 0.75],
+   "name": "实木餐桌加 4 把椅子",
+   "spec": "120×75 cm，橡胶木或白蜡木",
+   "price": 1500,
+   "priceBasis": "user"
+  },
+  {
+   "id": "l4-c1",
+   "type": "chair",
+   "room": "living",
+   "pos": [1.81, 4.62],
+   "rot": 90,
+   "size": [0.42, 0.42, 0.9],
+   "name": "餐椅",
+   "note": "含在餐桌那一项里"
+  },
+  {
+   "id": "l4-c2",
+   "type": "chair",
+   "room": "living",
+   "pos": [1.81, 5.18],
+   "rot": 90,
+   "size": [0.42, 0.42, 0.9],
+   "name": "餐椅",
+   "note": "含在餐桌那一项里"
+  },
+  {
+   "id": "l4-c3",
+   "type": "chair",
+   "room": "living",
+   "pos": [2.94, 4.62],
+   "rot": -90,
+   "size": [0.42, 0.42, 0.9],
+   "name": "餐椅",
+   "note": "含在餐桌那一项里"
+  },
+  {
+   "id": "l4-c4",
+   "type": "chair",
+   "room": "living",
+   "pos": [2.94, 5.18],
+   "rot": -90,
+   "size": [0.42, 0.42, 0.9],
+   "name": "餐椅",
+   "note": "含在餐桌那一项里"
+  },
+  {
+   "id": "l5",
+   "type": "rug",
+   "room": "living",
+   "pos": [1.8, 8.45],
+   "rot": 0,
+   "size": [1.6, 2.3, 0.009],
+   "name": "棉麻地毯",
+   "spec": "160×230 cm，米白",
+   "color": "#E0D7C6",
+   "price": 260,
+   "priceBasis": "user"
+  },
+  {
+   "id": "l6",
+   "type": "floor_lamp",
+   "room": "living",
+   "pos": [3.45, 7.17],
+   "rot": 0,
+   "size": [0.42, 0.42, 1.62],
+   "name": "纸灯罩落地灯",
+   "spec": "高约 160 cm，配 3000K 暖光灯泡",
+   "price": 150,
+   "priceBasis": "user"
+  },
+  {
+   "id": "l7",
+   "type": "pendant_lamp",
+   "room": "living",
+   "pos": [2.375, 4.9],
+   "rot": 0,
+   "size": [0.46, 0.46, 0.38],
+   "name": "餐厅纸灯吊灯",
+   "spec": "直径约 45 cm，替换原灯罩",
+   "elevation": 1.59,
+   "price": 120,
+   "priceBasis": "user"
+  },
+  {
+   "id": "l8",
+   "type": "curtain",
+   "room": "living",
+   "pos": [1.875, 10],
+   "rot": 180,
+   "size": [3.55, 0.1, 2.7],
+   "name": "阳台门双层窗帘",
+   "spec": "棉麻帘加白纱，约 3.4 m 宽，含杆",
+   "variant": "double",
+   "price": 380,
+   "priceBasis": "user",
+   "note": "能打孔就装轨道；不能就用加粗免打孔伸缩杆，帘子选轻的。"
+  },
+  {
+   "id": "l9",
+   "type": "plant",
+   "room": "living",
+   "pos": [0.42, 9.62],
+   "rot": 0,
+   "size": [0.5, 0.5, 1.5],
+   "name": "绿植、抱枕和沙发巾",
+   "spec": "琴叶榕或龟背竹一盆",
+   "price": 200,
+   "priceBasis": "user"
+  },
+  {
+   "id": "k1",
+   "type": "curtain",
+   "room": "kitchen",
+   "pos": [3.035, 1.35],
+   "rot": -90,
+   "size": [2.4, 0.04, 0.66],
+   "name": "厨房贴纸和柜洞布帘",
+   "spec": "台面白色岩板纹防油贴、灶台铝箔贴、棉麻布帘加 3 根伸缩杆",
+   "variant": "single",
+   "elevation": 0.1,
+   "price": 260,
+   "priceBasis": "user",
+   "note": "花岗岩台面整面贴白，台下空格用布帘遮住。"
+  },
+  {
+   "id": "o5",
+   "type": "stove",
+   "room": "kitchen",
+   "pos": [3.375, 2.05],
+   "rot": -90,
+   "size": [0.7, 0.45, 0.04],
+   "name": "燃气灶（自备或房里原有）",
+   "elevation": 0.82
+  },
+  {
+   "id": "o3",
+   "type": "fridge",
+   "room": "kitchen",
+   "pos": [3.325, 3.425],
+   "rot": -90,
+   "size": [0.75, 0.65, 1.75],
+   "name": "冰箱（自备）"
+  },
+  {
+   "id": "o4",
+   "type": "washer",
+   "room": "util",
+   "pos": [3.35, -1.05],
+   "rot": -90,
+   "size": [0.6, 0.6, 0.85],
+   "name": "洗衣机（自备）"
+  },
+  {
+   "id": "b1",
+   "type": "curtain",
+   "room": "bath",
+   "pos": [4.47, 4.23],
+   "rot": 0,
+   "size": [1.24, 0.04, 1.93],
+   "name": "卫生间浴帘和伸缩杆",
+   "spec": "做干湿分区",
+   "variant": "single",
+   "color": "#EEF0EE",
+   "elevation": 0.06,
+   "price": 80,
+   "priceBasis": "user"
+  },
+  {
+   "id": "b2",
+   "type": "shelf",
+   "room": "bath",
+   "pos": [4.02, 4.57],
+   "rot": 90,
+   "size": [0.58, 0.32, 1.75],
+   "name": "马桶上方置物架、吸水地垫",
+   "finish": "white",
+   "price": 140,
+   "priceBasis": "user"
+  },
+  {
+   "id": "b2-mat",
+   "type": "rug",
+   "room": "bath",
+   "pos": [4.35, 5.475],
+   "rot": 0,
+   "size": [0.5, 0.45, 0.012],
+   "name": "吸水地垫",
+   "color": "#E0D7C6",
+   "note": "含在置物架那一项里"
+  },
+  {
+   "id": "m1",
+   "type": "bed",
+   "room": "master",
+   "pos": [8.09, 8],
+   "rot": -90,
+   "size": [1.64, 2.08, 0.98],
+   "name": "源氏木语 橡木双人床",
+   "spec": "1.5×2.0 m，低床",
+   "price": 1606,
+   "priceBasis": "user",
+   "note": "1.8 m 床放不下：主卧净宽约 2.65 m，1.5 m 床尾还剩约 60 cm 过道。"
+  },
+  {
+   "id": "m3a",
+   "type": "nightstand",
+   "room": "master",
+   "pos": [8.94, 6.93],
+   "rot": -90,
+   "size": [0.42, 0.42, 0.5],
+   "name": "实木床头柜",
+   "spec": "40×45×50 cm",
+   "price": 130,
+   "priceBasis": "user"
+  },
+  {
+   "id": "m3b",
+   "type": "nightstand",
+   "room": "master",
+   "pos": [8.94, 9.07],
+   "rot": -90,
+   "size": [0.42, 0.42, 0.5],
+   "name": "实木床头柜",
+   "spec": "40×45×50 cm",
+   "price": 130,
+   "priceBasis": "user"
+  },
+  {
+   "id": "m5a",
+   "type": "table_lamp",
+   "room": "master",
+   "pos": [8.95, 6.93],
+   "rot": -90,
+   "size": [0.26, 0.26, 0.36],
+   "name": "床头灯",
+   "spec": "布艺或纸灯罩",
+   "elevation": 0.5,
+   "price": 60,
+   "priceBasis": "user"
+  },
+  {
+   "id": "m5b",
+   "type": "table_lamp",
+   "room": "master",
+   "pos": [8.95, 9.07],
+   "rot": -90,
+   "size": [0.26, 0.26, 0.36],
+   "name": "床头灯",
+   "spec": "布艺或纸灯罩",
+   "elevation": 0.5,
+   "price": 60,
+   "priceBasis": "user"
+  },
+  {
+   "id": "m4",
+   "type": "curtain",
+   "room": "master",
+   "pos": [8.04, 10],
+   "rot": 180,
+   "size": [2.12, 0.1, 2.7],
+   "name": "遮光窗帘加纱帘",
+   "spec": "约 1.9 m 宽，含杆",
+   "variant": "double",
+   "price": 220,
+   "priceBasis": "user"
+  },
+  {
+   "id": "m6",
+   "type": "rug",
+   "room": "master",
+   "pos": [7.42, 8],
+   "rot": 0,
+   "size": [1.6, 2, 0.009],
+   "name": "床边地毯",
+   "spec": "160×200 cm",
+   "color": "#D2C7B3",
+   "price": 120,
+   "priceBasis": "user",
+   "optional": true
+  },
+  {
+   "id": "m7",
+   "type": "cabinet",
+   "room": "master",
+   "pos": [8.15, 6.135],
+   "rot": 0,
+   "size": [1.2, 0.45, 0.8],
+   "name": "六斗柜",
+   "spec": "120×45×80 cm，放北墙",
+   "price": 600,
+   "priceBasis": "user",
+   "optional": true,
+   "note": "衣服主要放衣帽间，主卧只在需要时补一个斗柜。"
+  },
+  {
+   "id": "g1a",
+   "type": "clothes_rack",
+   "room": "gaming",
+   "pos": [4.043, 8.48],
+   "rot": 90,
+   "size": [1, 0.445, 2.1],
+   "name": "开放式衣帽架",
+   "spec": "100×46×210 cm，黄木纹色，三层双挂杆",
+   "variant": "long",
+   "finish": "oakLight",
+   "price": 624,
+   "priceBasis": "user",
+   "note": "两个并排共 2 m 挂衣。"
+  },
+  {
+   "id": "g1b",
+   "type": "clothes_rack",
+   "room": "gaming",
+   "pos": [4.043, 9.48],
+   "rot": 90,
+   "size": [1, 0.445, 2.1],
+   "name": "开放式衣帽架",
+   "spec": "100×46×210 cm，黄木纹色，三层双挂杆",
+   "variant": "shelves",
+   "finish": "oakLight",
+   "price": 624,
+   "priceBasis": "user"
+  },
+  {
+   "id": "g2",
+   "type": "curtain",
+   "room": "gaming",
+   "pos": [4.325, 8.98],
+   "rot": 90,
+   "size": [2, 0.04, 2.12],
+   "name": "防尘棉麻布帘和伸缩杆",
+   "spec": "挡在衣帽架前，2 m 宽",
+   "variant": "single",
+   "price": 120,
+   "priceBasis": "user"
+  },
+  {
+   "id": "g3",
+   "type": "desk",
+   "room": "gaming",
+   "pos": [5.99, 8.95],
+   "rot": -90,
+   "size": [1.4, 0.7, 0.75],
+   "name": "电脑桌",
+   "spec": "140×70 cm，原木色桌面白钢架",
+   "price": 500,
+   "priceBasis": "user"
+  },
+  {
+   "id": "o2",
+   "type": "monitor",
+   "room": "gaming",
+   "pos": [6.12, 8.95],
+   "rot": -90,
+   "size": [0.64, 0.2, 0.59],
+   "name": "显示器（自备）",
+   "elevation": 0.75
+  },
+  {
+   "id": "o2b",
+   "type": "pc_tower",
+   "room": "gaming",
+   "pos": [6.1, 9.44],
+   "rot": -90,
+   "size": [0.24, 0.4, 0.46],
+   "name": "电脑主机（自备）"
+  },
+  {
+   "id": "g4",
+   "type": "mirror",
+   "room": "gaming",
+   "pos": [5.2, 7.17],
+   "rot": 0,
+   "size": [0.54, 0.12, 1.64],
+   "name": "落地全身镜",
+   "spec": "50×160 cm，原木框",
+   "finish": "oakLight",
+   "price": 150,
+   "priceBasis": "user"
+  },
+  {
+   "id": "g5",
+   "type": "curtain",
+   "room": "gaming",
+   "pos": [5.1, 10],
+   "rot": 180,
+   "size": [2.08, 0.1, 2.7],
+   "name": "遮光窗帘",
+   "spec": "约 1.9 m 宽，含杆",
+   "variant": "blackout",
+   "price": 200,
+   "priceBasis": "user"
+  },
+  {
+   "id": "g6",
+   "type": "cabinet",
+   "room": "gaming",
+   "pos": [5.9, 7.305],
+   "rot": 0,
+   "size": [0.82, 0.47, 0.925],
+   "name": "抽屉收纳柜",
+   "spec": "80×45×90 cm，放叠放衣物和配件",
+   "finish": "white",
+   "price": 180,
+   "priceBasis": "user"
+  },
+  {
+   "id": "g7",
+   "type": "office_chair",
+   "room": "gaming",
+   "pos": [5.18, 8.95],
+   "rot": 90,
+   "size": [0.6, 0.6, 1.28],
+   "name": "人体工学椅",
+   "price": 600,
+   "priceBasis": "user",
+   "optional": true,
+   "color": "#B9BCBD",
+   "note": "已有电竞椅就不用买。"
+  },
+  {
+   "id": "s1",
+   "type": "folding_bed",
+   "room": "guest",
+   "pos": [6.96, 5.565],
+   "rot": 180,
+   "size": [0.88, 0.27, 0.95],
+   "name": "单人折叠床（带床垫）",
+   "spec": "展开 90×190 cm，收起 90×35 cm，带轮",
+   "variant": "folded",
+   "price": 400,
+   "priceBasis": "user",
+   "note": "平时立在东南角；来客人时沿东墙展开，不挡门。"
+  },
+  {
+   "id": "s2",
+   "type": "desk",
+   "room": "guest",
+   "pos": [5.9, 3.65],
+   "rot": 0,
+   "size": [1.2, 0.6, 0.75],
+   "name": "实木书桌",
+   "spec": "120×60 cm",
+   "price": 350,
+   "priceBasis": "user"
+  },
+  {
+   "id": "s3",
+   "type": "chair",
+   "room": "guest",
+   "pos": [5.9, 4.31],
+   "rot": 180,
+   "size": [0.42, 0.42, 0.9],
+   "name": "书桌椅",
+   "spec": "实木加软垫",
+   "price": 180,
+   "priceBasis": "user"
+  },
+  {
+   "id": "s4",
+   "type": "table_lamp",
+   "room": "guest",
+   "pos": [6.35, 3.5],
+   "rot": 0,
+   "size": [0.2, 0.2, 0.4],
+   "name": "带灯化妆镜、护眼台灯",
+   "elevation": 0.75,
+   "price": 180,
+   "priceBasis": "user"
+  },
+  {
+   "id": "s5",
+   "type": "shelf",
+   "room": "guest",
+   "pos": [5.36, 4.5],
+   "rot": 90,
+   "size": [0.8, 0.3, 1.2],
+   "name": "窄置物架",
+   "spec": "80×30×120 cm",
+   "price": 150,
+   "priceBasis": "user"
+  },
+  {
+   "id": "s6",
+   "type": "curtain",
+   "room": "niche",
+   "pos": [7.975, 3.85],
+   "rot": -90,
+   "size": [0.94, 0.05, 2.34],
+   "name": "飘窗小窗帘",
+   "spec": "约 0.9 m 宽",
+   "variant": "single",
+   "price": 100,
+   "priceBasis": "user"
+  },
+  {
+   "id": "p1",
+   "type": "deck_tiles",
+   "room": "balcony",
+   "pos": [1.875, 10.9],
+   "rot": 0,
+   "size": [3.55, 1.3, 0.006],
+   "name": "阳台锁扣防腐木地板",
+   "spec": "约 5㎡",
+   "price": 300,
+   "priceBasis": "user",
+   "optional": true
+  },
+  {
+   "id": "p2",
+   "type": "coffee_table",
+   "room": "balcony",
+   "pos": [2.6, 10.9],
+   "rot": 0,
+   "size": [0.56, 0.56, 0.705],
+   "name": "折叠小桌和两把椅子",
+   "variant": "round",
+   "price": 220,
+   "priceBasis": "user",
+   "optional": true
+  },
+  {
+   "id": "p2-s1",
+   "type": "stool",
+   "room": "balcony",
+   "pos": [2.05, 10.9],
+   "rot": 0,
+   "size": [0.4, 0.4, 0.46],
+   "name": "折叠椅",
+   "note": "含在折叠小桌那一项里",
+   "optional": true
+  },
+  {
+   "id": "p2-s2",
+   "type": "stool",
+   "room": "balcony",
+   "pos": [3.15, 10.9],
+   "rot": 0,
+   "size": [0.4, 0.4, 0.46],
+   "name": "折叠椅",
+   "note": "含在折叠小桌那一项里",
+   "optional": true
+  }
+ ],
+ "extras": [
+  {
+   "id": "f1",
+   "name": "SPC 锁扣地板（原木色）",
+   "spec": "5 mm 带 1 mm 静音垫，约 57㎡（52.3㎡ 加 8% 损耗）× 50 元/㎡",
+   "price": 2850,
+   "priceBasis": "user",
+   "note": "浮铺在原瓷砖上，不打胶，以后可以拆下来。"
+  },
+  {
+   "id": "f2",
+   "name": "扣条、收边条和工具",
+   "spec": "门口 T 型扣条、橡胶锤、美工刀",
+   "price": 200,
+   "priceBasis": "user"
+  },
+  {
+   "id": "m2",
+   "room": "master",
+   "name": "床垫",
+   "spec": "1.5×2.0 m，独立袋装弹簧，中等软硬",
+   "price": 1100,
+   "priceBasis": "user"
+  },
+  {
+   "id": "x1",
+   "name": "原木吸顶灯 ×3",
+   "spec": "客厅、主卧、衣帽间，替换原有吸顶灯",
+   "price": 600,
+   "priceBasis": "user",
+   "optional": true
+  },
+  {
+   "id": "z1",
+   "name": "运费、送货、零碎五金机动",
+   "price": 800,
+   "priceBasis": "user"
+  }
+ ]
+}
