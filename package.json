@@ -21,5 +21,13 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.1"
-  }
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YANRUOqaq/floorplan-3d.git"
+  },
+  "homepage": "https://yanruoqaq.github.io/floorplan-3d/"
 }

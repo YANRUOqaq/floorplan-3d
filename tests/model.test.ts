@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import schemaDoc from "../docs/schema.md?raw";
 import example from "../examples/01-room.json";
 import { parseHouse, type House } from "../src/model/schema";
 import { CATALOG } from "../src/model/catalog";
@@ -51,6 +52,14 @@ describe("数据格式", () => {
     expect(h.walls[0].kind).toBe("wall");
     expect(h.walls[0].openings).toEqual([]);
     expect(h.furniture).toEqual([]);
+  });
+
+  it("docs/schema.md 里的最小例子能通过校验（文档和格式定义保持一致）", () => {
+    const json = schemaDoc.match(/```json\r?\n([\s\S]*?)```/)![1];
+    const h = parseHouse(JSON.parse(json));
+    expect(h.walls.length).toBe(4);
+    expect(makeWalkable(h)(3.25, 3.0)).toBe(true);   // 门洞（墙 w3 上 x 2.8~3.7）里能站
+    expect(makeWalkable(h)(1.5, 3.0)).toBe(false);   // 同一面墙没开门的地方不能站
   });
 
   it("目录里的类型没有重复，默认尺寸都是正数", () => {

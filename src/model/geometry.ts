@@ -198,20 +198,32 @@ export function roomDoors(house: House, room: Room) {
 }
 
 /**
- * 自动生成“站到某个房间”的视角：从门口往里走一点，看向房间里最远的角（往中间收一些）。
- * 站的位置如果被墙挡住，就往房间中心挪。
+ * 自动生成“站到某个房间”的视角，学拍房子的站法：站在一个墙角，看向对角。
+ * 候选位置是每个墙角往房间里收 0.45 m（站不了就再往中间挪）；按“对角看得远”打分，
+ * 离室内门近的角加分（像刚走进房间），通往阳台的门不算。都站不了就站在房间中间。
  */
 export function autoRoomView(house: House, room: Room, walkable: (x: number, z: number) => boolean): { at: Vec2; look: [number, number, number] } {
   const c = labelPoint(room.polygon);
-  const doors = roomDoors(house, room).filter(d => d.o.type !== "entry");
-  const door = doors.sort((a, b) => b.o.width - a.o.width)[0] || roomDoors(house, room)[0];
-  let at: Vec2 = c;
-  if (door) {
-    const oc = openingCenter(door.w, door.o);
-    const step = door.w.thickness / 2 + 0.55;
-    at = [oc[0] + door.inward[0] * step, oc[1] + door.inward[1] * step];
+  const doorPts = roomDoors(house, room)
+    .filter(d => d.o.type !== "entry" && d.o.type !== "window")
+    .filter(d => {   // 只算通往室内正经房间的门：另一侧是阳台、飘窗这类小空间的不算
+      const oc = openingCenter(d.w, d.o), k = d.w.thickness / 2 + 0.3;
+      const other = roomAt(house.rooms, [oc[0] - d.inward[0] * k, oc[1] - d.inward[1] * k]);
+      return !!other && !other.outdoor && polygonArea(other.polygon) >= 2;
+    })
+    .map(d => openingCenter(d.w, d.o));
+  let best: { at: Vec2; score: number } | null = null;
+  for (const v of room.polygon) {
+    const L = Math.hypot(c[0] - v[0], c[1] - v[1]) || 1;
+    let at: Vec2 = [v[0] + (c[0] - v[0]) / L * 0.45 * Math.SQRT2, v[1] + (c[1] - v[1]) / L * 0.45 * Math.SQRT2];
+    for (let k = 0; k < 6 && !walkable(at[0], at[1]); k++) at = [at[0] + (c[0] - at[0]) * 0.2, at[1] + (c[1] - at[1]) * 0.2];
+    if (!walkable(at[0], at[1]) || !pointInPolygon(at, room.polygon)) continue;
+    const far = Math.max(...room.polygon.map(q => Math.hypot(q[0] - at[0], q[1] - at[1])));
+    const nearDoor = doorPts.length ? Math.min(...doorPts.map(p => Math.hypot(p[0] - at[0], p[1] - at[1]))) : 3;
+    const score = far - 0.3 * Math.min(nearDoor, 3);
+    if (!best || score > best.score) best = { at, score };
   }
-  for (let k = 0; k <= 10 && !walkable(at[0], at[1]); k++) at = [at[0] + (c[0] - at[0]) * 0.25, at[1] + (c[1] - at[1]) * 0.25];
+  const at = best?.at ?? c;
   let far = room.polygon[0], fd = -1;
   for (const v of room.polygon) { const d = Math.hypot(v[0] - at[0], v[1] - at[1]); if (d > fd) { fd = d; far = v; } }
   const look: [number, number, number] = [far[0] * 0.7 + c[0] * 0.3, 1.0, far[1] * 0.7 + c[1] * 0.3];

@@ -89,7 +89,6 @@ export function roomDefaults(type: Room["type"]): Pick<Room, "floor" | "wall" | 
   return { floor: "wood", wall: "paint", outdoor: undefined };
 }
 
-
 /* ---------- 家具 ---------- */
 export const Item = z.object({
   id: Id,
@@ -160,14 +159,13 @@ export const HouseBase = z.object({
   background: Background.optional(),
 });
 
-/** 字段之间的检查：id 不重复、引用的房间和门窗存在、洞口不超出墙 */
+/** 字段之间的检查：id 不重复、引用的房间存在、洞口不超出墙 */
 export const House = HouseBase.superRefine((h, ctx) => {
   const seen = new Map<string, string>();
   const claim = (id: string, path: (string | number)[]) => {
     if (seen.has(id)) ctx.addIssue({ code: "custom", path, message: `id "${id}" 重复了（和 ${seen.get(id)} 同名）` });
     else seen.set(id, path.join("."));
   };
-  const openingIds = new Set<string>();
   h.walls.forEach((w, i) => {
     claim(w.id, ["walls", i, "id"]);
     const len = Math.hypot(w.b[0] - w.a[0], w.b[1] - w.a[1]);
@@ -175,7 +173,6 @@ export const House = HouseBase.superRefine((h, ctx) => {
     const wh = w.height ?? h.height;
     w.openings.forEach((o, j) => {
       claim(o.id, ["walls", i, "openings", j, "id"]);
-      openingIds.add(o.id);
       if (o.offset + o.width > len + 1e-6) ctx.addIssue({ code: "custom", path: ["walls", i, "openings", j], message: `洞口 ${o.id} 超出了墙 ${w.id}：offset + width = ${(o.offset + o.width).toFixed(3)}，墙长 ${len.toFixed(3)}` });
       if (o.top <= o.bottom) ctx.addIssue({ code: "custom", path: ["walls", i, "openings", j], message: `洞口 ${o.id} 的上沿要高于下沿` });
       if (o.top > wh + 1e-6) ctx.addIssue({ code: "custom", path: ["walls", i, "openings", j], message: `洞口 ${o.id} 的上沿 ${o.top} 高过了墙高 ${wh}` });
