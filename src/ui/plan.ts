@@ -2,7 +2,7 @@
 import { THEME_IDS } from "../model/schema";
 import { polygonArea } from "../model/geometry";
 import { CATALOG_BY_TYPE } from "../model/catalog";
-import { THEMES } from "../three/materials";
+import { THEMES } from "../model/themes";
 import type { App } from "./app";
 import { esc } from "./dom";
 import { renderProps } from "./props";

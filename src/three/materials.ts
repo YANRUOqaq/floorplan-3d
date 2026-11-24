@@ -8,7 +8,9 @@
  */
 import * as THREE from "three";
 import type { House, Item, Room } from "../model/schema";
-import { WOOD_FINISHES, THEME_IDS } from "../model/schema";
+import { WOOD_FINISHES } from "../model/schema";
+import { THEMES } from "../model/themes";
+export { THEMES };
 import { textures, FLOOR_GRAY } from "./textures";
 
 /** 把十六进制数字直接当线性值（复现原页面的颜色） */
@@ -24,26 +26,6 @@ export const M = (c: THREE.Color, o: MatOpts = {}) =>
   new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.8, metalness: 0, envMapIntensity: 0.5 }, o));
 
 export type WoodFinish = (typeof WOOD_FINISHES)[number];
-export type ThemeId = (typeof THEME_IDS)[number];
-
-export interface Theme {
-  nameZh: string;
-  desc: string;
-  wood: WoodFinish;
-  /** 布艺：沙发、床品、窗帘的主色 */
-  fabric: string;
-  /** 点缀布艺：抱枕、搭毯 */
-  accent: string;
-  wallColor: string;
-  floorColor: string;
-}
-export const THEMES: Record<ThemeId, Theme> = {
-  natural: { nameZh: "原木日式", desc: "橡木色家具、米白布艺、暖白墙", wood: "oak", fabric: "#EAE7E2", accent: "#CED5C5", wallColor: "#FBFAF8", floorColor: "#D0B08A" },
-  nordic: { nameZh: "北欧白", desc: "浅木和白色为主，浅灰布艺", wood: "oakLight", fabric: "#E4E5E6", accent: "#B7C4CF", wallColor: "#FCFCFB", floorColor: "#DCCBB2" },
-  cream: { nameZh: "奶油风", desc: "奶白和燕麦色，圆润柔和", wood: "oakLight", fabric: "#F2E9DA", accent: "#E6CFB0", wallColor: "#F6EFE4", floorColor: "#E2D0B6" },
-  walnut: { nameZh: "胡桃木中古", desc: "深木色、焦糖和橄榄绿点缀", wood: "walnut", fabric: "#C9B79A", accent: "#8E9A6B", wallColor: "#F3EEE6", floorColor: "#9A7456" },
-  industrial: { nameZh: "工业风", desc: "深木、黑色金属、灰色布艺", wood: "oakDark", fabric: "#9C9C99", accent: "#C08A5A", wallColor: "#E2E1DD", floorColor: "#8E857B" },
-};
 
 /** 家具木色。数值来自原页面（legacy），新加的胡桃木按同样方式取 */
 const WOOD_HEX: Record<WoodFinish, string> = {

@@ -3,11 +3,11 @@
  * 表单改动时用 store.commit() 提交，所以都能撤销。长度在表单里用厘米（坐标用米），存的时候换回米。
  */
 import type { House, Item, Opening, Room, Wall } from "../model/schema";
-import { FLOOR_FINISHES, FLOOR_LABEL, OPENING_LABEL, OPENING_TYPES, ROOM_LABEL, ROOM_TYPES, WALL_FINISHES, WALL_LABEL, WOOD_FINISHES, WOOD_LABEL } from "../model/schema";
+import { roomDefaults, FLOOR_FINISHES, FLOOR_LABEL, OPENING_LABEL, OPENING_TYPES, ROOM_LABEL, ROOM_TYPES, WALL_FINISHES, WALL_LABEL, WOOD_FINISHES, WOOD_LABEL } from "../model/schema";
 import { CATALOG, CATALOG_BY_TYPE } from "../model/catalog";
 import { polygonArea, roomAt, wallFrame } from "../model/geometry";
-import { THEMES } from "../three/materials";
-import { deleteById, roomDefaults } from "../editor/editor";
+import { THEMES } from "../model/themes";
+import { deleteById } from "../editor/editor";
 import type { App } from "./app";
 import { esc, toast } from "./dom";
 

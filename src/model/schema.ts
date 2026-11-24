@@ -82,6 +82,14 @@ export const Room = z.object({
 });
 export type Room = z.infer<typeof Room>;
 
+/** 房间类型的默认地面和墙面 */
+export function roomDefaults(type: Room["type"]): Pick<Room, "floor" | "wall" | "outdoor"> {
+  if (type === "kitchen" || type === "bath") return { floor: "tileSmall", wall: "tile", outdoor: undefined };
+  if (type === "balcony") return { floor: "tile", wall: "exterior", outdoor: true };
+  return { floor: "wood", wall: "paint", outdoor: undefined };
+}
+
+
 /* ---------- 家具 ---------- */
 export const Item = z.object({
   id: Id,

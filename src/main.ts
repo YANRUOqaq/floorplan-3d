@@ -13,6 +13,8 @@ import type { App, SidePanel } from "./ui/app";
 import { $, $$, download, esc, toast } from "./ui/dom";
 import { renderInfo } from "./ui/info";
 import { renderPlanPanel } from "./ui/plan";
+import { renderBudget } from "./ui/budget";
+import { initChat } from "./ui/chat";
 
 const store = new Store(Store.restore(localStorage) ?? parseHouse(example), localStorage);
 
@@ -71,10 +73,12 @@ function onChange(h: House) {
   if (app.selected && !h.furniture.some(f => f.id === app.selected)) app.selected = null;
   app.viewer.load(h);
   renderPlanPanel(app, $("#side-plan"));
+  renderBudget(app, $("#side-list"));
   renderInfo(app, $("#info"));
   editor?.render();
 }
 editor = new Editor($("#pane-2d"), app);
+initChat(app, $("#side-ai"));
 store.subscribe(onChange);
 onChange(store.house);
 

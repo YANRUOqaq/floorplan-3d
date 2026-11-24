@@ -7,14 +7,16 @@
  * 坐标：世界坐标单位米（x 向右、z 向下），屏幕坐标 = 平移 + 缩放 × 世界坐标。
  * 每次重画都把世界坐标换成屏幕坐标再画，这样线宽、文字大小不随缩放变化。
  */
-import type { House, Item, Opening, Room, Vec2, Wall } from "../model/schema";
-import { OPENING_LABEL, OPENING_TYPES } from "../model/schema";
+import type { House, Item, Opening, Vec2, Wall } from "../model/schema";
+import { OPENING_LABEL, OPENING_TYPES, roomDefaults } from "../model/schema";
 import { CATALOG, CATALOG_BY_TYPE } from "../model/catalog";
 import { distToSegment, itemFootprint, labelPoint, pointInPolygon, polygonArea, roomAt, wallFrame, wallPoint, houseBBox } from "../model/geometry";
 import type { App } from "../ui/app";
 import { esc, toast, uid } from "../ui/dom";
 import { clearBg, imageSize, loadBg, saveBg } from "./bg";
 import { nearestWall, placeOnWall, snap, snapTargets, type SnapResult } from "./snap";
+import { applyDraft, draftFromRecognition, recognize } from "../llm/recognize";
+import { loadSettings } from "../llm/providers";
 
 export type Tool = "select" | "wall" | "opening" | "room" | "item" | "calibrate";
 type OpeningType = (typeof OPENING_TYPES)[number];
@@ -27,13 +29,6 @@ const OPENING_DEFAULT: Record<OpeningType, { width: number; bottom: number; top:
   window: { width: 1.5, bottom: 0.9, top: 2.3 },
   opening: { width: 0.9, bottom: 0, top: 2.2 },
 };
-/** 房间类型的默认地面和墙面 */
-export function roomDefaults(type: Room["type"]): Pick<Room, "floor" | "wall" | "outdoor"> {
-  if (type === "kitchen" || type === "bath") return { floor: "tileSmall", wall: "tile", outdoor: undefined };
-  if (type === "balcony") return { floor: "tile", wall: "exterior", outdoor: true };
-  return { floor: "wood", wall: "paint", outdoor: undefined };
-}
-
 const PX_TOL = 10;   // 吸附和点选的屏幕容差
 
 type Drag =
@@ -89,6 +84,7 @@ export class Editor {
         <button type="button" class="btn small" id="ed-bgtoggle">隐藏底图</button>
         <button type="button" class="btn small danger" id="ed-bgdel" title="从浏览器里删掉这张底图">删除底图</button>
         <button type="button" class="btn small" id="ed-fit" title="缩放到能看到全部">适应窗口</button>
+        <button type="button" class="btn small" id="ed-recog" title="把画面里能看到的这部分户型图发给识图模型，识别出墙、门窗和房间的草稿">识别户型图（实验）</button>
         <input type="file" id="ed-file" accept="image/*" hidden>
       </div>
       <div class="ed-calib" id="ed-calibbox" hidden></div>
@@ -180,6 +176,7 @@ export class Editor {
     });
     q("#ed-bgtoggle").addEventListener("click", () => { this.bgHidden = !this.bgHidden; this.render(); });
     q("#ed-fit").addEventListener("click", () => this.fit());
+    q("#ed-recog").addEventListener("click", () => this.recognizeVisible());
     q("#ed-bgdel").addEventListener("click", () => { if (this.bg) this.removeBackground(); });
   }
 
@@ -208,6 +205,38 @@ export class Editor {
     if (this.app.store.house.background) this.app.store.commit("删除底图", d => { delete d.background; });
   }
   /** 底图上的像素坐标 ↔ 世界坐标 */
+  /**
+   * 识别户型图：只发画面里能看到的那部分（整栋楼的户型图先缩放到自己那一户），
+   * 长边缩到 1600 像素以内，省流量也省调用费。结果整份替换墙和房间，可以撤销。
+   */
+  private async recognizeVisible() {
+    const h = this.app.store.house, b = h.background;
+    if (!this.bg || !b) { toast("先上传户型图。", true); return; }
+    if (b.pxPerMz == null) { toast("先标定比例：识别结果要靠比例换算成米。", true); return; }
+    const s = loadSettings();
+    if (!s.apiKey || !s.visionModel) { toast("先在“大模型”面板里填 API Key 和识图模型。", true); this.app.showSide("ai"); return; }
+    const btn = this.root.querySelector("#ed-recog") as HTMLButtonElement;
+    const [p0, p1] = [this.W(0, 0), this.W(this.svg.clientWidth, this.svg.clientHeight)].map(p => this.worldToImg(p));
+    const x0 = Math.max(0, Math.floor(p0[0])), y0 = Math.max(0, Math.floor(p0[1]));
+    const x1 = Math.min(this.bg.w, Math.ceil(p1[0])), y1 = Math.min(this.bg.h, Math.ceil(p1[1]));
+    if (x1 - x0 < 50 || y1 - y0 < 50) { toast("画面里看不到户型图。先缩放到你家那一户。", true); return; }
+    const k = Math.min(1, 1600 / Math.max(x1 - x0, y1 - y0)), cw = Math.round((x1 - x0) * k), ch = Math.round((y1 - y0) * k);
+    btn.disabled = true; btn.textContent = "识别中……";
+    try {
+      const rec = await loadBg();
+      const bmp = await createImageBitmap(rec!.blob);
+      const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+      c.getContext("2d")!.drawImage(bmp, x0, y0, x1 - x0, y1 - y0, 0, 0, cw, ch);
+      const raw = await recognize(s, c.toDataURL("image/jpeg", 0.9), cw, ch);
+      const draft = draftFromRecognition(raw, { offset: [x0, y0], scale: 1 / k, bg: b }, h.height);
+      if (!draft.walls.length) { toast("没识别出墙。可以把画面缩放得更贴近你家那一户再试，或者手动描。", true); return; }
+      this.app.store.replace(applyDraft(this.app.store.house, draft), "识别户型图");
+      const n = draft.walls.reduce((s, w) => s + w.openings.length, 0);
+      toast(`识别出 ${draft.walls.length} 面墙、${n} 个门窗、${draft.rooms.length} 个房间${draft.dropped ? `，丢掉 ${draft.dropped} 个对不上的` : ""}。\n这只是草稿，尺寸常有偏差，请对照底图逐面检查；不满意可以撤销。`, false, 9000);
+      this.setTool("select");
+    } catch (e) { toast((e as Error).message, true); }
+    finally { btn.disabled = false; btn.textContent = "识别户型图（实验）"; }
+  }
   private worldToImg(p: Vec2): Vec2 { const b = this.house.background!; return [p[0] * b.pxPerM + b.origin[0], p[1] * (b.pxPerMz ?? b.pxPerM) + b.origin[1]]; }
 
   private finishCalibration(meters: number) {
@@ -529,7 +558,9 @@ export class Editor {
       parts.push(`<polygon class="ed-item${it.fixed ? " fixed" : ""}${it.id === sel ? " sel" : ""}" points="${pts(fp)}"/>`);
       parts.push(`<polyline class="ed-front" points="${pts([fp[3], fp[2]])}"/>`);
       const [cx, cy] = S(it.pos), sz = Math.min(it.size[0], it.size[1]) * s;
-      if (sz > 26) parts.push(`<text class="ed-ilabel" x="${cx}" y="${cy}">${esc(shortName(it))}</text>`);
+      // 只给够大的落地家具标名字，用类型的短名；地毯、窗帘、放在上面的小东西不标，免得字压字
+      const label = CATALOG_BY_TYPE[it.type]?.nameZh ?? it.type, flat = NO_LABEL.has(it.type) || !!it.elevation;
+      if (!flat && sz > Math.max(30, label.length * 11)) parts.push(`<text class="ed-ilabel" x="${cx}" y="${cy}">${esc(label)}</text>`);
     }
     // 选中的墙、房间：画出可拖的端点
     const f = this.find(sel);
@@ -610,7 +641,7 @@ const normRot = (r: number) => { let v = ((r % 360) + 360) % 360; if (v > 180) v
 function ids(h: House): string[] {
   return [...h.walls.flatMap(w => [w.id, ...w.openings.map(o => o.id)]), ...h.rooms.map(r => r.id), ...h.furniture.map(f => f.id), ...h.extras.map(e => e.id)];
 }
-function shortName(it: Item) { return (it.name || CATALOG_BY_TYPE[it.type]?.nameZh || it.type).replace(/（.*?）|\(.*?\)/g, "").slice(0, 8); }
+const NO_LABEL = new Set(["rug", "curtain", "deck_tiles", "pendant_lamp", "table_lamp", "tv", "monitor", "stove", "shower"]);
 function niceLen(v: number) { for (const c of [0.1, 0.2, 0.5, 1, 2, 5, 10, 20]) if (c >= v) return c; return 50; }
 function groupedCatalog() {
   const cats = [...new Set(CATALOG.map(c => c.category))];
