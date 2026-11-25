@@ -33,11 +33,15 @@ const WOOD_HEX: Record<WoodFinish, string> = {
   white: "#F6F5F1", black: "#2A2C2F", grey: "#C9CBCB",
 };
 
-export function createMaterials() {
+/**
+ * trueColor：内置颜色按标准 sRGB 理解（色值写的是什么颜色就是什么颜色）。出效果图用它：路径追踪按物理算光，
+ * 按旧方式把色值当线性值会让所有中间色发白发灰（胡桃木看起来像浅橡木）。3D 浏览仍用旧方式，和原页面的观感一致。
+ */
+export function createMaterials(o: { trueColor?: boolean } = {}) {
   const t = textures();
   const wood = (c: THREE.Color, rough = 0.5) => M(c, { map: t.grain, bumpMap: t.grain, bumpScale: 0.3, roughness: rough });
   const fabric = (c: THREE.Color, o: MatOpts = {}) => M(c, Object.assign({ map: t.fabric, bumpMap: t.fabric, bumpScale: 0.6, roughness: 0.96 }, o));
-  const L = legacy;
+  const L = o.trueColor ? srgb : legacy;
   const mat = {
     paint: M(L("#F5F3EF"), { map: t.paint, bumpMap: t.paint, bumpScale: 0.2, roughness: 0.92 }),
     ext: M(L("#E7E4DF"), { map: t.paint, roughness: 0.95 }),

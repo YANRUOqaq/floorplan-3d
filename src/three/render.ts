@@ -115,7 +115,8 @@ const abortError = () => new DOMException("已停止", "AbortError");
 
 /** 和 3D 浏览里看到的一样的房子、家具、灯光，去掉只为实时渲染补的假阴影 */
 async function buildScene(shot: Shot) {
-  const m = createMaterials();
+  // 内置颜色按标准 sRGB 理解：同机位对比，旧方式（实时浏览用的）在路径追踪里木色发白，胡桃木像浅橡木
+  const m = createMaterials({ trueColor: true });
   const b = buildHouse(shot.house, m);
   const scene = new THREE.Scene();
   const walls = b.walls(shot.orbit);
