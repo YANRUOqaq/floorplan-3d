@@ -8,6 +8,8 @@ import { defineConfig } from "vitest/config";
  * three-gpu-pathtracer（出效果图用）里有个文件叫 aux.wgsl.js。AUX 是 Windows 的保留设备名，
  * Vite 的打包器（rolldown）在 Windows 上解析不到它，开发服务器和打包都会报 “Could not resolve './nodes/aux.wgsl.js'”。
  * 这里把对它的导入换成同目录下的另一个名字，内容照原文件读。Linux、macOS 上没有这个问题（GitHub Actions 的构建跑在 Linux 上），插件也不影响结果。
+ * 上游已在 2026-11-10 合并的 PR #947 里把它改名成 auxiliary.wgsl.js，但还没发版（最新是 0.0.28）；
+ * 升级到包含这次改名的版本后删掉这个插件，tests/render.test.ts 里有一条测试会提醒。
  */
 const AUX = /[\\/]three-gpu-pathtracer[\\/]src[\\/]webgpu[\\/]nodes[\\/]aux\.wgsl\.js$/;
 const pathtracerAuxOnWindows: Plugin = {

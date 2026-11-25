@@ -22,4 +22,8 @@ describe("出效果图", () => {
     // 降噪权重是 Apache-2.0，再分发要带许可证原文
     expect(existsSync("public/render/LICENSE-oidn-weights.txt")).toBe(true);
   });
+  it("路径追踪库里还有 aux.wgsl.js 时才需要 vite.config.ts 的改名插件（上游 #947 已改名，等新版发布）", () => {
+    expect(existsSync("node_modules/three-gpu-pathtracer/src/webgpu/nodes/aux.wgsl.js"),
+      "three-gpu-pathtracer 新版已把 aux.wgsl.js 改名：删掉 vite.config.ts 里的 pathtracerAuxOnWindows 插件和这条测试").toBe(true);
+  });
 });
