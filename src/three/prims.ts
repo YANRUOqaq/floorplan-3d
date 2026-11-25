@@ -4,6 +4,7 @@
  */
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { rng } from "./textures";
 
 export const noRay = () => {};
@@ -46,6 +47,51 @@ export function box(m: Mat, x0: number, x1: number, y0: number, y1: number, z0: 
 /** 圆角件：r 默认 6 mm */
 export const R = (m: Mat, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, g: THREE.Object3D, r = 0.006, seg = 2, o: BoxOpts = {}) =>
   box(m, x0, x1, y0, y1, z0, z1, g, Object.assign({ r, seg }, o));
+
+/**
+ * 软包：枕头、坐垫、靠垫、床垫、被子。圆角盒子最薄方向的两面往外鼓，四边不动，看起来是“塞满了棉”的。
+ * bulge 是鼓起的程度：中间比四边厚出多少（占总厚度的比例），0 就是普通圆角盒子，枕头约 0.5。
+ * 鼓起之后整体仍落在 x0~x1、y0~y1、z0~z1 里。r 是圆角半径（米），不填按厚度取。
+ *
+ * 为什么不用 RoundedBoxGeometry：它的平面部分只有一个四边形，没有中间的顶点，鼓不起来。
+ * 这里用细分过的盒子，把靠近棱的顶点推到圆角上，再按到四边的距离往外推，最后合并顶点、算平滑法线。
+ */
+export function cushion(m: Mat, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, parent: THREE.Object3D,
+  o: { r?: number; bulge?: number; shadow?: boolean; noBlob?: boolean } = {}) {
+  const size = [Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0)];
+  // 沿最薄的方向鼓：坐垫往上鼓，竖着的靠垫、抱枕往前鼓
+  const k = size.indexOf(Math.min(...size)), [i, j] = [0, 1, 2].filter(a => a !== k);
+  const bulge = o.bulge ?? 0.3, base = [...size];
+  base[k] = size[k] / (1 + bulge);                 // 鼓起前的厚度：鼓完正好是原来的厚度
+  const half = base.map(v => v / 2);
+  const r = Math.min(o.r ?? half[k] * 0.9, ...half.map(v => v - 1e-4));
+  const n = (len: number) => Math.min(40, Math.max(4, Math.round(len / 0.03)));
+  const geo0 = new THREE.BoxGeometry(base[0], base[1], base[2], n(base[0]), n(base[1]), n(base[2]));
+  geo0.deleteAttribute("normal"); geo0.deleteAttribute("uv");
+  const geo = mergeVertices(geo0, 1e-5);
+  geo0.dispose();
+  const p = geo.attributes.position, inner = half.map(v => v - r), c = [0, 0, 0], q = [0, 0, 0];
+  const lift = bulge * half[k];
+  for (let n0 = 0; n0 < p.count; n0++) {
+    // 圆角：落在内盒外面的部分推到半径 r 的圆角面上
+    for (let a = 0; a < 3; a++) { const v = p.getComponent(n0, a); c[a] = THREE.MathUtils.clamp(v, -inner[a], inner[a]); q[a] = v - c[a]; }
+    const len = Math.hypot(q[0], q[1], q[2]);
+    for (let a = 0; a < 3; a++) q[a] = c[a] + (len > 1e-9 ? q[a] / len * r : 0);
+    // 鼓起：薄的那两面往外推，离四边越远推得越多；侧面那一圈按位置渐变，保持连贯
+    const u = Math.min(1, Math.abs(q[i]) / half[i]), t = Math.min(1, Math.abs(q[j]) / half[j]);
+    q[k] += Math.sign(q[k]) * lift * (1 - u * u) * (1 - t * t) * Math.abs(q[k]) / half[k];
+    p.setXYZ(n0, q[0], q[1], q[2]);
+  }
+  geo.computeVertexNormals();
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(new Float32Array(p.count * 2), 2));
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
+  if (hasTex(m)) worldUV(geo, cx, cy, cz, size[0], size[1], size[2], false);
+  const mesh = new THREE.Mesh(geo, m);
+  mesh.position.set(cx, cy, cz);
+  mesh.castShadow = o.shadow !== false; mesh.receiveShadow = true;
+  if (o.noBlob) mesh.userData.noBlob = true;
+  parent.add(mesh); return mesh;
+}
 
 /** 竖直圆柱（或圆台）：底面圆心 (x, y0, z)，rTop 不填就是圆柱 */
 export function cyl(m: THREE.Material, x: number, z: number, r: number, y0: number, y1: number, parent: THREE.Object3D, rTop?: number | null, seg = 32, open = false) {

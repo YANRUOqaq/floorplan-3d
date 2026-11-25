@@ -1,6 +1,6 @@
 // 将家具的相对坐标换成本地米制坐标。圆形部件沿宽、深独立缩放。
 import type { Material } from "three";
-import { R, cyl, type BoxOpts } from "../prims";
+import { R, cushion, cyl, type BoxOpts } from "../prims";
 import type { FurnitureCtx } from "./types";
 
 export function parts({ g, w, d, h }: FurnitureCtx) {
@@ -15,7 +15,10 @@ export function parts({ g, w, d, h }: FurnitureCtx) {
     mesh.scale.z = d / w;
     return mesh;
   };
-  return { block, disc, x, z };
+  /** 软包件：坐标和 block 一样按占地比例写，r 是圆角半径（米），bulge 见 prims.ts 的 cushion */
+  const soft = (m: Material, x0: number, x1: number, y0: number, y1: number, z0: number, z1: number, r: number, bulge: number) =>
+    cushion(m, x(x0), x(x1), y0 * h, y1 * h, z(z0), z(z1), g, { r, bulge });
+  return { block, disc, soft, x, z };
 }
 
 // 四角腿的截面以米计，留边按占地比例计算。
