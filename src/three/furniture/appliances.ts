@@ -1,6 +1,6 @@
 // 电器保留原页的黑色屏幕、金属门缝和玻璃面板。电视与显示器的底座沿进深铺开。
 import { CircleGeometry, Mesh } from "three";
-import { pointLight, ring } from "../prims";
+import { cyl, pointLight, ring } from "../prims";
 import { parts } from "./parts";
 import type { FurnitureCtx, FurnitureDef } from "./types";
 
@@ -34,15 +34,31 @@ export const appliances: FurnitureDef[] = [
     glass.renderOrder = 1;
     block(c.mat.rgb, 0.15, 0.17, 0.13, 0.87, 0.997, 1, 0, flat);
   } },
+  // 上冷藏下冷冻的双门冰箱：箱体、两扇单独的门（缝 4 mm）、贴着左边的竖条拉手（两个立柱架起一根杆）
   { type: "fridge", build(c) {
     const { block } = parts(c);
-    block(c.mat.appliance, 0, 1, 0, 1, 0, 0.977, 0.025);
-    block(c.mat.grey, 0.013, 0.987, 0.629, 0.632, 0.976, 0.98, 0, flat);
-    block(c.mat.steel, 0.093, 0.133, 0.543, 0.771, 0.977, 1, 0.006);
+    const { appliance, steel, grey } = c.mat;
+    block(grey, 0.03, 0.97, 0, 0.02, 0.05, 0.9);
+    block(appliance, 0, 1, 0.02, 1, 0, 0.92, 0.02);
+    const split = 0.36, g = 0.002 / c.h;
+    for (const [y0, y1, h0, h1] of [[0.022, split - g, 0.2, 0.32], [split + g, 1, 0.4, 0.75]]) {
+      block(appliance, 0, 1, y0, y1, 0.92, 0.965, 0.015);
+      const hx = 0.06 + 0.012 / c.w;
+      for (const y of [h0, h1]) block(steel, hx - 0.008 / c.w, hx + 0.008 / c.w, y - 0.006 / c.h, y + 0.006 / c.h, 0.965, 0.99, 0.003);
+      block(steel, hx - 0.01 / c.w, hx + 0.01 / c.w, h0 - 0.02 / c.h, h1 + 0.02 / c.h, 0.985, 1, 0.008);
+    }
   } },
+  // 滚筒洗衣机：机身、顶部操作面板（洗衣液盒、旋钮、显示屏）、镀铬门圈加深色玻璃门
   { type: "washer", build(c) {
-    const { block } = parts(c);
+    const { block, x } = parts(c);
     block(c.mat.appliance, 0, 1, 0, 1, 0, 0.95, 0.03);
+    block(c.mat.grey, 0.04, 0.96, 0.835, 0.837, 0.948, 0.955, 0, flat);
+    block(c.mat.appliance, 0.05, 0.36, 0.86, 0.96, 0.948, 0.962, 0.006);
+    block(c.mat.screen, 0.5, 0.68, 0.89, 0.935, 0.95, 0.958, 0.002, flat);
+    // 旋钮：横放的短圆柱，正面朝前
+    const knob = cyl(c.mat.steel, 0, 0, Math.min(0.025, c.w * 0.04), 0, 0.02, c.g);
+    knob.rotation.x = Math.PI / 2;
+    knob.position.set(x(0.82), c.h * 0.91, c.d / 2 - 0.01);
     const r = Math.min(c.w * 0.283, c.h * 0.2);
     const tube = Math.min(0.025, c.d * 0.04, r * 0.15);
     const z = c.d / 2 - tube;

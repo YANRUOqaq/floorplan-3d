@@ -58,6 +58,9 @@ export async function renderShot(shot: Shot, o: RenderOptions): Promise<Blob> {
   let pt: WebGPUPathTracer | null = null, cleanup = () => {};
   try {
     await renderer.init();
+    // 拿不到 WebGPU 设备时 three.js 会悄悄退回 WebGL2，路径追踪在 WebGL2 上跑不了，只会报一串看不懂的着色器错误。
+    // 2026-11-25 用无头 Chrome 连续出图时实测偶尔会这样（同一台机器重试就好）
+    if (!(renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend) throw new Error("这次没能启用显卡的 WebGPU（浏览器退回了 WebGL），出不了效果图。请重试；还不行就重启浏览器。");
     renderer.setPixelRatio(1);
     renderer.setSize(o.width, o.height, false);
     // 色调映射用 AgX：同机位对比时 ACES 把木地板压得偏橙、Neutral 偏暗，AgX 最接近照片
