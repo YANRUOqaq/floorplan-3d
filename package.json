@@ -13,10 +13,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "oidn-webgpu": "0.6.0",
     "three": "^0.187.0",
+    "three-gpu-pathtracer": "0.0.28",
+    "three-mesh-bvh": "0.9.17",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "@types/three": "^0.187.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",

@@ -13,6 +13,21 @@ import { esc } from "../ui/dom";
 
 const EYE = 1.6;
 
+/** 出效果图用的快照：当前的户型、浏览模式和相机（见 three/render.ts） */
+export interface Shot {
+  house: House;
+  /** 鸟瞰、俯视（墙切矮、没有天花板）还是站在屋里 */
+  orbit: boolean;
+  position: [number, number, number];
+  quaternion: [number, number, number, number];
+  /** 竖直方向的视野，度 */
+  fov: number;
+  /** 画面宽高比 */
+  aspect: number;
+  /** 站在屋里时脸朝的水平方向（弧度），出全景用 */
+  yaw: number;
+}
+
 export interface ViewerEvents {
   /** 选中或取消选中家具 */
   onSelect?: (id: string | null) => void;
@@ -132,6 +147,13 @@ export class Viewer {
   }
 
   get views() { return this.built?.views ?? []; }
+  get mode() { return this.mode3d; }
+
+  shot(): Shot | null {
+    if (!this.house || !this.built) return null;
+    const c = this.camera;
+    return { house: this.house, orbit: this.mode3d === "orbit", position: c.position.toArray(), quaternion: c.quaternion.toArray() as Shot["quaternion"], fov: c.fov, aspect: c.aspect, yaw: this.fp.yaw };
+  }
   get currentView() { return this.current; }
 
   private touch() { this.dirty = true; this.renderer.shadowMap.needsUpdate = true; }

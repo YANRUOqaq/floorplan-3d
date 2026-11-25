@@ -37,7 +37,10 @@
 <main class="layout">
   <section class="stage">
     <div id="pane-3d" class="pane" role="tabpanel" aria-labelledby="tab-3d">
-      <div class="chips" id="views" role="group" aria-label="视角"></div>
+      <div class="view-bar">
+        <div class="chips" id="views" role="group" aria-label="视角"></div>
+        <button type="button" class="btn small" id="btn-render">出效果图</button>
+      </div>
       <div class="viewer" id="viewer" tabindex="0" aria-label="3D 户型，可拖动转头、点地面走动">
         <div class="info" id="info" hidden aria-live="polite"></div>
         <div class="empty" id="empty3d" hidden>还没有墙。到“2D 编辑”里上传户型图描一遍，或者在“文件”里打开示例。</div>
@@ -57,6 +60,7 @@
     <div class="side-body" id="side-list" hidden></div>
   </aside>
 </main>
+<dialog class="render-dlg" id="render-dlg" aria-label="出效果图"></dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 <script type="module" src="/src/main.ts"></script>
 </body>

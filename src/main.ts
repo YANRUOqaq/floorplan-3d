@@ -15,6 +15,7 @@ import { renderInfo } from "./ui/info";
 import { renderPlanPanel } from "./ui/plan";
 import { renderBudget } from "./ui/budget";
 import { initChat } from "./ui/chat";
+import { initRenderDialog } from "./ui/renderDialog";
 
 const store = new Store(Store.restore(localStorage) ?? parseHouse(example), localStorage);
 
@@ -79,6 +80,7 @@ function onChange(h: House) {
 }
 editor = new Editor($("#pane-2d"), app);
 initChat(app, $("#side-ai"));
+initRenderDialog(app);
 store.subscribe(onChange);
 onChange(store.house);
 

@@ -15,7 +15,7 @@ export function toast(msg: string, err = false, ms = 2600) {
   toastTimer = window.setTimeout(() => { t.hidden = true; }, err ? Math.max(ms, 6000) : ms);
 }
 
-export function download(name: string, text: string, type = "application/json") {
+export function download(name: string, text: string | Blob, type = "application/json") {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([text], { type }));
   a.download = name; a.click();
