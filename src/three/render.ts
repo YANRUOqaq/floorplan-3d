@@ -88,16 +88,23 @@ export async function renderShot(shot: Shot, o: RenderOptions): Promise<Blob> {
     });
     await tracer.setSceneAsync(built.scene, camera);
 
+    // 渲染循环：每次排一批采样，等显卡做完再排下一批。不用 requestAnimationFrame：窗口被别的窗口挡住时
+    // 浏览器会把它压到每秒一两次，2026-11-25 实测同一张图从约 15 秒拖到 100 秒；出图时用户常会切去干别的
+    const queue = (renderer.backend as { device?: GPUDevice }).device?.queue;
     await new Promise<void>((resolve, reject) => {
-      let raf = 0, done = false;
-      const stop = (err?: Error) => { done = true; cancelAnimationFrame(raf); o.signal?.removeEventListener("abort", onAbort); if (err) reject(err); else resolve(); };
+      let done = false;
+      const stop = (err?: Error) => { done = true; o.signal?.removeEventListener("abort", onAbort); if (err) reject(err); else resolve(); };
       const onAbort = () => stop(abortError());
       o.signal?.addEventListener("abort", onAbort);
       tracer.addEventListener("complete", () => stop());
       denoiser.addEventListener("error", (e: { error?: unknown }) => stop(new Error(`降噪失败：${String(e.error ?? "未知原因")}`)));
-      // “complete”是在 renderSample() 里面触发的，所以每次调用后都要再看一眼是否已经结束，免得在释放后又排一帧
-      const loop = () => { tracer.renderSample(); if (!done) raf = requestAnimationFrame(loop); };
-      loop();
+      (async () => {
+        // “complete”是在 renderSample() 里面触发的，所以每次调用后都要看一眼是否已经结束，免得在释放后又排一批
+        while (!done) {
+          tracer.renderSample();
+          if (queue) await queue.onSubmittedWorkDone(); else await new Promise(r => setTimeout(r, 0));
+        }
+      })().catch(err => stop(err as Error));
     });
     // 再画一帧，紧接着读画布：WebGPU 画布的内容只在画完的这一刻读得到
     tracer.renderSample();

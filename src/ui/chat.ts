@@ -33,6 +33,7 @@ export function initChat(app: App, box: HTMLElement) {
         <label class="field wide"><span>接口地址（Base URL）</span><input type="url" id="llm-base" placeholder="https://…/v1"></label>
         <label class="field"><span>模型</span><input type="text" id="llm-model" list="llm-models"></label>
         <label class="field"><span>识图模型（户型图识别用）</span><input type="text" id="llm-vmodel" list="llm-models" placeholder="不用识图可以空着"></label>
+        <label class="field wide"><span>图像模型（出效果图里的 AI 精修用，目前只支持通义千问）</span><input type="text" id="llm-imodel" list="llm-models" placeholder="不用可以空着"></label>
         <datalist id="llm-models"></datalist>
         <label class="field wide"><span>API Key</span><input type="password" id="llm-key" autocomplete="off" spellcheck="false"></label>
       </div>
@@ -46,11 +47,11 @@ export function initChat(app: App, box: HTMLElement) {
       <div class="row"><button type="submit" class="btn primary" id="chat-send">发送</button><button type="button" class="btn" id="chat-stop" hidden>停止</button><span class="note" id="chat-status"></span></div>
     </form>`;
   const q = <T extends HTMLElement>(sel: string) => box.querySelector(sel) as T;
-  const fields = { provider: q<HTMLSelectElement>("#llm-provider"), base: q<HTMLInputElement>("#llm-base"), model: q<HTMLInputElement>("#llm-model"), vmodel: q<HTMLInputElement>("#llm-vmodel"), key: q<HTMLInputElement>("#llm-key") };
+  const fields = { provider: q<HTMLSelectElement>("#llm-provider"), base: q<HTMLInputElement>("#llm-base"), model: q<HTMLInputElement>("#llm-model"), vmodel: q<HTMLInputElement>("#llm-vmodel"), imodel: q<HTMLInputElement>("#llm-imodel"), key: q<HTMLInputElement>("#llm-key") };
 
   /* ---------- 设置 ---------- */
   function showSettings() {
-    fields.provider.value = s.provider; fields.base.value = s.baseURL; fields.model.value = s.model; fields.vmodel.value = s.visionModel; fields.key.value = s.apiKey;
+    fields.provider.value = s.provider; fields.base.value = s.baseURL; fields.model.value = s.model; fields.vmodel.value = s.visionModel; fields.imodel.value = s.imageModel; fields.key.value = s.apiKey;
     const p = PROVIDERS.find(p => p.id === s.provider);
     q<HTMLAnchorElement>("#llm-keyurl").hidden = !p?.keyUrl;
     if (p?.keyUrl) q<HTMLAnchorElement>("#llm-keyurl").href = p.keyUrl;
@@ -58,14 +59,14 @@ export function initChat(app: App, box: HTMLElement) {
     if (!s.apiKey) (q("#llm-set") as HTMLDetailsElement).open = true;
   }
   function readSettings(): LlmSettings {
-    return { provider: fields.provider.value, baseURL: fields.base.value.trim(), model: fields.model.value.trim(), visionModel: fields.vmodel.value.trim(), apiKey: fields.key.value.trim() };
+    return { provider: fields.provider.value, baseURL: fields.base.value.trim(), model: fields.model.value.trim(), visionModel: fields.vmodel.value.trim(), imageModel: fields.imodel.value.trim(), apiKey: fields.key.value.trim() };
   }
   fields.provider.addEventListener("change", () => {
     const p = PROVIDERS.find(p => p.id === fields.provider.value)!;
-    s = { ...readSettings(), provider: p.id, baseURL: p.baseURL, model: p.model, visionModel: p.visionModel };
+    s = { ...readSettings(), provider: p.id, baseURL: p.baseURL, model: p.model, visionModel: p.visionModel, imageModel: p.imageModel };
     saveSettings(s); showSettings();
   });
-  for (const f of [fields.base, fields.model, fields.vmodel, fields.key]) f.addEventListener("change", () => { s = readSettings(); saveSettings(s); showSettings(); });
+  for (const f of [fields.base, fields.model, fields.vmodel, fields.imodel, fields.key]) f.addEventListener("change", () => { s = readSettings(); saveSettings(s); showSettings(); });
   q("#llm-clear").addEventListener("click", () => { clearKey(); s = loadSettings(); showSettings(); toast("已从这个浏览器里清除 Key。"); });
   q("#llm-list").addEventListener("click", async () => {
     try {

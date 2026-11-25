@@ -10,7 +10,7 @@ import { describeHouse } from "../src/llm/prompt";
 import type { LlmSettings } from "../src/llm/providers";
 
 const house = parseHouse(example);
-const settings: LlmSettings = { provider: "deepseek", baseURL: "https://api.example.com/v1/", model: "m", visionModel: "", apiKey: "sk-test" };
+const settings: LlmSettings = { provider: "deepseek", baseURL: "https://api.example.com/v1/", model: "m", visionModel: "", imageModel: "", apiKey: "sk-test" };
 
 /** 假的接口：按顺序返回给定的回复文字，并记下每次请求 */
 function fakeFetch(replies: (string | { status: number; body: unknown })[]) {
