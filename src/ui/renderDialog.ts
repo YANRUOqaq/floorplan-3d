@@ -9,7 +9,7 @@ import { dashscopeOrigin, refineImage, refineSize } from "../llm/refine";
 
 type Kind = "still" | "pano";
 const NO_WEBGPU = "这个浏览器不支持 WebGPU，出不了效果图。请用电脑上最新版的 Chrome 或 Edge。3D 浏览和其他功能不受影响。";
-/** 清晰度：长边像素和每个像素的采样次数。数值按 2026-11-25 RX 7800 XT 实测定：标准约 15 秒，高清约 30 秒（全景约 1 分钟） */
+/** 清晰度：长边像素和每个像素的采样次数。数值按 2026-11-25 RX 7800 XT 实测定：标准约 15 秒，高清约 40 秒，标准全景约 22 秒 */
 export const PRESETS: Record<Kind, Record<"std" | "hd", { long: number; samples: number; label: string }>> = {
   still: { std: { long: 1280, samples: 64, label: "标准（1280 像素）" }, hd: { long: 1920, samples: 128, label: "高清（1920 像素）" } },
   pano: { std: { long: 2048, samples: 64, label: "标准（2048×1024）" }, hd: { long: 4096, samples: 64, label: "高清（4096×2048）" } },
