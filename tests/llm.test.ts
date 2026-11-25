@@ -3,7 +3,7 @@ import example from "../examples/01-room.json";
 import { formatIssues, parseHouse } from "../src/model/schema";
 import { Store } from "../src/model/store";
 import { budgetSummary } from "../src/model/budget";
-import { applyOps, LlmReply, refProblems, resolvePlace, type Op } from "../src/model/ops";
+import { applyOps, fitSize, LlmReply, refProblems, resolvePlace, type Op } from "../src/model/ops";
 import { askAssistant } from "../src/llm/agent";
 import { chat, extractJson, LlmError } from "../src/llm/client";
 import { describeHouse } from "../src/llm/prompt";
@@ -152,13 +152,14 @@ describe("修改说明只写真正变了的", () => {
     expect(applyOps(house, [{ op: "setTheme", theme: "cream" }]).lines).toEqual(["整体风格换成奶油风"]);
     expect(applyOps(house, [{ op: "setTheme", theme: "natural" }]).errors[0]).toMatch(/本来就是原木日式/);
   });
-  it("房间颜色：写出颜色值；给 null 回到跟随风格；瓷砖地面的地板颜色跳过", () => {
-    const a = applyOps(house, [{ op: "setRoomFinish", room: "master", floorColor: "#B08A64", wall: "paint" }]);
-    expect(a.lines).toEqual(["主卧：地板颜色 #B08A64"]);            // wall 本来就是 paint，不算改动
+  it("房间颜色：写出色板名字，存成色值；给 null 回到跟随风格；瓷砖地面的地板颜色跳过", () => {
+    const a = applyOps(house, [{ op: "setRoomFinish", room: "master", floorColor: "柚木", wall: "paint" }]);
+    expect(a.lines).toEqual(["主卧：地板颜色 柚木"]);            // wall 本来就是 paint，不算改动
+    expect(a.house.rooms.find(r => r.id === "master")!.floorColor).toBe("#B08560");
     const b = applyOps(a.house, [{ op: "setRoomFinish", room: "master", floorColor: null }]);
     expect(b.house.rooms.find(r => r.id === "master")!.floorColor).toBeUndefined();
     expect(b.lines).toEqual(["主卧：地板颜色跟随整体风格"]);
-    const c = applyOps(house, [{ op: "setRoomFinish", room: "kitchen", floorColor: "#FFFFFF" }]);
+    const c = applyOps(house, [{ op: "setRoomFinish", room: "kitchen", floorColor: "原木" }]);
     expect(c.lines).toEqual([]);
     expect(c.errors[0]).toMatch(/不是木地板/);
   });
@@ -203,7 +204,7 @@ describe("修改指令", () => {
       { op: "add", type: "plant", room: "guest", name: "龟背竹", pos: [6.9, 4.9], price: 120 },
       { op: "update", id: "l2", name: "白蜡木小圆茶几", price: 300 },
       { op: "remove", id: "m7" },
-      { op: "setRoomFinish", room: "master", floorColor: "#B08A64" },
+      { op: "setRoomFinish", room: "master", floorColor: "柚木" },
       { op: "setTheme", theme: "cream" },
     ];
     const r = applyOps(house, ops);
@@ -213,7 +214,7 @@ describe("修改指令", () => {
     expect(h.furniture.find(f => f.name === "龟背竹")?.priceBasis).toBe("llm");
     expect(h.furniture.find(f => f.id === "l2")?.price).toBe(300);
     expect(h.furniture.some(f => f.id === "m7")).toBe(false);
-    expect(h.rooms.find(r => r.id === "master")?.floorColor).toBe("#B08A64");
+    expect(h.rooms.find(r => r.id === "master")?.floorColor).toBe("#B08560");
     expect(h.theme).toBe("cream");
     expect(house.theme).toBe("natural");   // 原方案不受影响
   });
@@ -322,12 +323,99 @@ describe("对话流程（模拟接口）", () => {
     expect(master.windows.some(x => x.side === "S")).toBe(true);
     expect(JSON.stringify(d)).not.toContain("background");
   });
-  it("没标价的家具写成 price: null（原有设施不写）；房间单独设的颜色也写上", () => {
-    const h = applyOps(house, [{ op: "setRoomFinish", room: "master", floorColor: "#B08A64" }]).house;
+  it("没标价的家具写成 price: null（原有设施不写）；房间单独设的颜色写色板名字", () => {
+    const h = applyOps(house, [{ op: "setRoomFinish", room: "master", floorColor: "柚木" }]).house;
     const d = describeHouse(h);
     const tv = d.furniture.find(f => f.id === "o1")!, toilet = d.furniture.find(f => f.id === "fx-toilet")!;
     expect((tv as { price?: unknown }).price).toBeNull();
     expect("price" in toilet).toBe(false);
-    expect(d.rooms.find(r => r.id === "master")!.floorColor).toBe("#B08A64");
+    expect(d.rooms.find(r => r.id === "master")!.floorColor).toBe("柚木");
+  });
+  it("家具的颜色：色板里的写名字，用户自己调的写色值；木色也写上", () => {
+    const h = applyOps(house, [{ op: "update", id: "l1", color: "燕麦" }]).house;
+    const d = describeHouse(h);
+    expect(d.furniture.find(f => f.id === "l1")!.color).toBe("燕麦");
+    const chair = house.furniture.find(f => f.type === "office_chair")!;     // 示例里手动设的 #DDDFDF
+    expect(d.furniture.find(f => f.id === chair.id)!.color).toBe(chair.color);
+  });
+  it("颜色写成色值：发回去说明只能写色板名字，第二次改对就用第二次", async () => {
+    // 2026-11-24 实测：换奶油风时通义千问把地板设成 #F8F5F0（接近纯白）
+    const bad = JSON.stringify({ reply: "好", ops: [{ op: "setRoomFinish", room: "master", floorColor: "#F8F5F0" }] });
+    const good = JSON.stringify({ reply: "好", ops: [{ op: "setRoomFinish", room: "master", floorColor: "奶油" }] });
+    const f = fakeFetch([bad, good]);
+    const r = await askAssistant(settings, house, [], "换奶油风", { fetchFn: f.fn });
+    expect(r.repaired).toBe(true);
+    expect(f.calls[1].body.messages.at(-1).content).toMatch(/地板颜色 floorColor 只能写色板里的名字（原木、/);
+    expect(r.preview?.house.rooms.find(x => x.id === "master")!.floorColor).toBe("#E2D0B6");
+  });
+  it("提示词里有每种家具的尺寸范围和三个色板", async () => {
+    const f = fakeFetch([ok]);
+    await askAssistant(settings, house, [], "x", { fetchFn: f.fn });
+    const sys = f.calls[0].body.messages[0].content as string;
+    expect(sys).toContain("nightstand：床头柜，默认 42×42×50 cm，范围 宽 30–70、深 30–50、高 35–70 cm");
+    expect(sys).toContain("rug：地毯，默认 160×230×1 cm，范围 宽 40–400、深 40–400、高 0.5–3 cm");
+    expect(sys).toMatch(/布艺颜色 color[^\n]*燕麦 #D9C9AE/);
+    expect(sys).toMatch(/地板颜色 floorColor[^\n]*胡桃 #9A7456/);
+    expect(sys).toMatch(/墙面颜色 wallColor[^\n]*奶油白 #F6EFE4/);
+  });
+});
+
+describe("尺寸限制在常见范围内、颜色只能从色板里选", () => {
+  it("新加的家具尺寸超出范围：改到范围边上，并提醒改成了多少", () => {
+    const r = applyOps(house, [{ op: "add", type: "nightstand", room: "master", name: "床头柜", pos: [7, 7], size: [0.42, 0.42, 3] }]);
+    expect(r.house.furniture.find(f => f.name === "床头柜" && f.id.startsWith("ai"))!.size).toEqual([0.42, 0.42, 0.7]);
+    expect(r.warnings[0]).toBe("床头柜：尺寸超出床头柜的常见范围（宽 30–70、深 30–50、高 35–70 cm），从 42×42×300 改成 42×42×70 cm");
+    expect(r.lines[0]).toContain("42×42 cm");
+  });
+  it("不给尺寸用默认尺寸，不提醒", () => {
+    expect(applyOps(house, [{ op: "add", type: "sofa", room: "living", name: "沙发", pos: [3, 3] }]).warnings.some(w => w.includes("常见范围"))).toBe(false);
+  });
+  it("update 只管大模型改了的那一维：和现在一样的维度不动（可能是用户手动设的）", () => {
+    // 用户手动把床头柜设成 90 cm 高（超出范围），大模型只改宽度
+    const h = structuredClone(house), ns = h.furniture.find(f => f.type === "nightstand")!;
+    ns.size = [0.42, 0.42, 0.9];
+    const a = applyOps(h, [{ op: "update", id: ns.id, size: [0.5, 0.42, 0.9] }]);
+    expect(a.house.furniture.find(f => f.id === ns.id)!.size).toEqual([0.5, 0.42, 0.9]);
+    expect(a.warnings).toEqual([]);
+    expect(a.lines).toEqual([`改 ${ns.name}：尺寸 50×42×90 cm`]);
+    const b = applyOps(h, [{ op: "update", id: ns.id, size: [1.2, 0.42, 0.9] }]);
+    expect(b.house.furniture.find(f => f.id === ns.id)!.size).toEqual([0.7, 0.42, 0.9]);
+    expect(b.warnings[0]).toMatch(/从 120×42×90 改成 70×42×90 cm/);
+  });
+  it("fitSize：范围内的原样返回，不带说明", () => {
+    expect(fitSize("bed", [1.8, 2.0, 1.0])).toEqual({ size: [1.8, 2.0, 1.0] });
+    expect(fitSize("bed", [0.5, 2.0, 1.0]).size).toEqual([1.2, 2.0, 1.0]);
+  });
+  it("颜色写色板名字，存成色值；给 null 回到跟随风格；和现在一样的跳过", () => {
+    const a = applyOps(house, [{ op: "add", type: "sofa", room: "living", name: "沙发", pos: [3, 3], color: "墨绿" }]);
+    const sofa = a.house.furniture.find(f => f.id.startsWith("ai"))!;
+    expect(sofa.color).toBe("#3F5546");
+    const b = applyOps(a.house, [{ op: "update", id: sofa.id, color: null }]);
+    expect(b.house.furniture.find(f => f.id === sofa.id)!.color).toBeUndefined();
+    expect(b.lines).toEqual(["改 沙发：颜色跟随整体风格"]);
+    expect(applyOps(a.house, [{ op: "update", id: sofa.id, color: "墨绿" }]).errors[0]).toMatch(/没有要改的地方/);
+    expect(applyOps(house, [{ op: "update", id: "l1", color: "燕麦", finish: "walnut" }]).lines[0]).toMatch(/：木色 胡桃木、颜色 燕麦$/);
+  });
+  it("add 不写 name 就用家具类型的中文名", () => {
+    const r = applyOps(house, [{ op: "add", type: "table_lamp", room: "master", place: { on: "m3a" } }]);
+    expect(r.errors).toEqual([]);
+    expect(r.house.furniture.find(f => f.id.startsWith("ai"))!.name).toBe("台灯");
+    expect(LlmReply.safeParse({ reply: "", ops: [{ op: "add", type: "table_lamp", room: "master", place: { on: "m3a" } }] }).success).toBe(true);
+  });
+  it("把颜色设回跟随风格、而房间本来就跟随风格：不算跳过，也不列进修改", () => {
+    // 2026-11-25 实测：换奶油风时通义千问给 11 个房间都发了 floorColor: null、wallColor: null
+    const r = applyOps(house, [{ op: "setTheme", theme: "cream" }, { op: "setRoomFinish", room: "master", floorColor: null, wallColor: null }]);
+    expect(r.lines).toEqual(["整体风格换成奶油风"]);
+    expect(r.errors).toEqual([]);
+    expect(applyOps(house, [{ op: "setRoomFinish", room: "master", floor: "wood" }]).errors[0]).toMatch(/本来就是这样/);
+  });
+  it("色值和色板外的名字过不了校验，报错里列出能用的名字", () => {
+    for (const color of ["#3F5546", "军绿"]) {
+      const r = LlmReply.safeParse({ reply: "", ops: [{ op: "update", id: "l1", color }] });
+      expect(r.success).toBe(false);
+      expect(formatIssues(r.error!)).toMatch(/布艺颜色 color 只能写色板里的名字（米白、奶白/);
+    }
+    const w = LlmReply.safeParse({ reply: "", ops: [{ op: "setRoomFinish", room: "master", wallColor: "#FFFFFF" }] });
+    expect(formatIssues(w.error!)).toMatch(/墙面颜色 wallColor 只能写色板里的名字/);
   });
 });

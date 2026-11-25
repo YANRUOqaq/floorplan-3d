@@ -3,6 +3,7 @@ import schemaDoc from "../docs/schema.md?raw";
 import example from "../examples/01-room.json";
 import { parseHouse, type House } from "../src/model/schema";
 import { CATALOG } from "../src/model/catalog";
+import { FABRIC_COLORS, FLOOR_COLORS, THEMES, WALL_COLORS, colorName } from "../src/model/themes";
 import {
   centroid, convexOverlap, itemFootprint, labelPoint, makeWalkable, pointInPolygon, polygonArea,
   roomDoors, autoRoomView, wallPieces, wallSplits, wallPoint, wallFrame,
@@ -65,6 +66,30 @@ describe("数据格式", () => {
   it("目录里的类型没有重复，默认尺寸都是正数", () => {
     expect(new Set(CATALOG.map(c => c.type)).size).toBe(CATALOG.length);
     for (const c of CATALOG) expect(c.defaultSize.every(v => v > 0)).toBe(true);
+  });
+
+  it("尺寸范围：下限小于上限，默认尺寸和示例里的家具都在范围内（范围定得太窄会改坏正常的尺寸）", () => {
+    const inRange = (type: string, size: number[]) => {
+      const c = CATALOG.find(x => x.type === type)!;
+      return size.every((v, i) => v >= c.range[i][0] && v <= c.range[i][1]);
+    };
+    for (const c of CATALOG) {
+      expect(c.range.every(([lo, hi]) => lo > 0 && lo < hi), c.type).toBe(true);
+      expect(inRange(c.type, c.defaultSize), `${c.type} 的默认尺寸不在范围内`).toBe(true);
+    }
+    for (const f of house.furniture) expect(inRange(f.type, f.size), `示例的 ${f.id}（${f.type}）${f.size.join("×")} 不在范围内`).toBe(true);
+  });
+
+  it("色板：色值格式对，5 套风格用到的颜色都在色板里", () => {
+    for (const p of [FABRIC_COLORS, FLOOR_COLORS, WALL_COLORS]) {
+      for (const v of Object.values(p)) expect(v).toMatch(/^#[0-9A-F]{6}$/);
+      expect(new Set(Object.values(p)).size).toBe(Object.keys(p).length);
+    }
+    for (const [id, t] of Object.entries(THEMES)) {
+      expect(colorName(FABRIC_COLORS, t.fabric), `${id} 的布艺色不在色板里`).toBeDefined();
+      expect(colorName(FLOOR_COLORS, t.floorColor), `${id} 的地板色不在色板里`).toBeDefined();
+      expect(colorName(WALL_COLORS, t.wallColor), `${id} 的墙面色不在色板里`).toBeDefined();
+    }
   });
 });
 

@@ -7,16 +7,26 @@
  * 摆放：大模型很难算准坐标，所以除了直接给 pos，还可以用 place 说“靠哪面墙、在墙的哪一段”，
  * 或者“挨着哪件家具”“放在哪件家具上面”，由程序按房间外框、墙厚和那件家具的位置算出坐标和朝向。
  * 新加的家具还没有 id，大模型可以给它起个临时名字（ref），后面的指令用这个名字指代它。
+ *
+ * 画面质量不交给大模型：家具外形、材质、光照都由程序定，大模型只能选类型、木色、风格这些固定选项；
+ * 它给的尺寸限制在每种家具的常见范围内（fitSize），颜色只能写色板里的名字（themes.ts）。
+ * 这些限制只管大模型的指令，用户在属性面板里手动改不受限。
  */
 import { z } from "zod";
-import { CATALOG_BY_TYPE, FURNITURE_TYPES } from "./catalog";
-import { FLOOR_FINISHES, FLOOR_LABEL, THEME_IDS, WALL_FINISHES, WALL_LABEL, WOOD_FINISHES, parseHouse, type House, type Item, type Room, type Vec2 } from "./schema";
-import { THEMES } from "./themes";
+import { CATALOG_BY_TYPE, FURNITURE_TYPES, cmText, rangeText } from "./catalog";
+import { FLOOR_FINISHES, FLOOR_LABEL, THEME_IDS, WALL_FINISHES, WALL_LABEL, WOOD_FINISHES, WOOD_LABEL, parseHouse, type House, type Item, type Room, type Vec2 } from "./schema";
+import { FABRIC_COLORS, FLOOR_COLORS, THEMES, WALL_COLORS, type Palette } from "./themes";
 import { bbox, convexOverlap, distToSegment, itemFootprint, pointInPolygon, wallFrame, wallPoint } from "./geometry";
 
-const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const Num = z.number().finite();
 const Size = z.tuple([Num.positive(), Num.positive(), Num.positive()]);
+type Size3 = [number, number, number];
+
+/** 颜色只能写色板里的名字；给 null 是去掉单独设的颜色，跟随整体风格 */
+function paletteName(p: Palette, what: string) {
+  const names = Object.keys(p) as [string, ...string[]];
+  return z.enum(names, { error: `${what}只能写色板里的名字（${names.join("、")}），不能写色值` }).nullable();
+}
 
 const Dir = z.enum(["N", "S", "W", "E"]);
 type Dir = z.infer<typeof Dir>;
@@ -50,7 +60,7 @@ const ItemFields = {
   elevation: Num.min(0).max(3).optional(),
   variant: z.string().optional(),
   finish: z.enum(WOOD_FINISHES).optional(),
-  color: Hex.optional(),
+  color: paletteName(FABRIC_COLORS, "布艺颜色 color ").optional(),
   price: Num.min(0).optional(),
   optional: z.boolean().optional(),
   note: z.string().max(200).optional(),
@@ -62,13 +72,14 @@ export const Op = z.discriminatedUnion("op", [
     /** 自己起的临时名字，同一次回复里后面的指令可以用它指代这件家具（不写也有自动名字，见 RefTable） */
     ref: z.string().min(1).max(40).optional(),
     pos: z.tuple([Num, Num]).optional(), place: z.union([Place.omit({ room: true }), Beside, On], { error: 'place 只能是这三种之一：{"wall","at","gap"}、{"beside","side","gap"}、{"on"}。只给坐标时不要放进 place，直接在指令里写 pos 和 rot' }).optional(),
-    ...ItemFields, name: z.string().min(1).max(60),
+    // name 不写就用家具类型的中文名（2026-11-25 实测通义千问加台灯时会漏写，为这个多重试一轮不值得）
+    ...ItemFields,
   }),
   z.object({ op: z.literal("move"), id: z.string(), pos: z.tuple([Num, Num]).optional(), place: z.union([Place.partial({ room: true }), Beside, On], { error: 'place 只能是这三种之一：{"wall","at","gap"}、{"beside","side","gap"}、{"on"}。只给坐标时不要放进 place，直接在指令里写 pos 和 rot' }).optional(), rot: Num.optional() }),
   z.object({ op: z.literal("update"), id: z.string(), ...ItemFields }),
   z.object({ op: z.literal("remove"), id: z.string() }),
   // 颜色给 null：去掉房间单独的颜色，跟随整体风格
-  z.object({ op: z.literal("setRoomFinish"), room: z.string(), floor: z.enum(FLOOR_FINISHES).optional(), floorColor: Hex.nullable().optional(), wall: z.enum(WALL_FINISHES).optional(), wallColor: Hex.nullable().optional() }),
+  z.object({ op: z.literal("setRoomFinish"), room: z.string(), floor: z.enum(FLOOR_FINISHES).optional(), floorColor: paletteName(FLOOR_COLORS, "地板颜色 floorColor ").optional(), wall: z.enum(WALL_FINISHES).optional(), wallColor: paletteName(WALL_COLORS, "墙面颜色 wallColor ").optional() }),
   z.object({ op: z.literal("setTheme"), theme: z.enum(THEME_IDS) }),
   z.object({ op: z.literal("addExtra"), name: z.string().min(1).max(60), price: Num.min(0), spec: z.string().max(120).optional(), room: z.string().optional(), optional: z.boolean().optional(), note: z.string().max(200).optional() }),
   z.object({ op: z.literal("removeExtra"), id: z.string() }),
@@ -95,6 +106,19 @@ export const LlmReply = z.object({
   ops: z.array(z.preprocess(tidyOp, Op)).max(80).default([]),
 });
 export type LlmReply = z.infer<typeof LlmReply>;
+
+/* ---------- 尺寸 ---------- */
+/**
+ * 大模型给的尺寸限制在这种家具的常见范围内（catalog.ts 的 range），超出的那一维改到范围边上。
+ * keep 是家具现在的尺寸：和现在一样的那一维不动（可能是用户手动设的），只管大模型这次真正改了的。
+ */
+export function fitSize(type: string, size: Size3, keep?: Size3): { size: Size3; note?: string } {
+  const cat = CATALOG_BY_TYPE[type];
+  const out = size.map((v, i) => keep && v === keep[i] ? v : Math.min(Math.max(v, cat.range[i][0]), cat.range[i][1])) as Size3;
+  if (out.every((v, i) => v === size[i])) return { size: out };
+  const cm = (s: number[]) => s.map(cmText).join("×");
+  return { size: out, note: `尺寸超出${cat.nameZh}的常见范围（${rangeText(cat)}），从 ${cm(size)} 改成 ${cm(out)} cm` };
+}
 
 /* ---------- 摆放 ---------- */
 /** 房间某一边的墙，内表面离墙中线有多远（墙厚的一半） */
@@ -213,7 +237,7 @@ export interface ApplyResult {
   lines: string[];
   /** 套不上的指令（id 不存在、动了原有设施等），这些指令被跳过 */
   errors: string[];
-  /** 要留意的问题（出房间、重叠、挡门、清单项可能重复），指令照样套用，由用户决定 */
+  /** 要留意的问题（尺寸被改到常见范围内、出房间、重叠、挡门、清单项可能重复），指令照样套用，由用户决定 */
   warnings: string[];
   /** 新增或移动过的家具 */
   touched: string[];
@@ -227,7 +251,7 @@ function newId(h: House, prefix: string) {
 
 export function applyOps(house: House, ops: Op[]): ApplyResult {
   const d = structuredClone(house);
-  const lines: string[] = [], errors: string[] = [], touched: string[] = [], addedExtras: string[] = [];
+  const lines: string[] = [], errors: string[] = [], touched: string[] = [], addedExtras: string[] = [], sizeNotes: string[] = [];
   const roomName = (id?: string) => d.rooms.find(r => r.id === id)?.name ?? id ?? "";
   const refs = new RefTable(new Set(d.furniture.map(f => f.id)));
   /** 相对摆放的那件家具；找不到时记一条跳过说明，返回 null */
@@ -250,28 +274,30 @@ export function applyOps(house: House, ops: Op[]): ApplyResult {
           // 不管加没加成都要登记：自动名字的序号要和大模型数的一致（break 会先执行 finally）
           let added: string | null = null;
           try {
-            const cat = CATALOG_BY_TYPE[op.type];
-            if (!d.rooms.some(r => r.id === op.room)) { errors.push(`房间 ${op.room} 不存在，没加 ${op.name}`); break; }
-            const size = (op.size ?? [...cat.defaultSize]) as [number, number, number];
+            const cat = CATALOG_BY_TYPE[op.type], nm = op.name ?? cat.nameZh;
+            if (!d.rooms.some(r => r.id === op.room)) { errors.push(`房间 ${op.room} 不存在，没加 ${nm}`); break; }
+            const fit = fitSize(op.type, (op.size ?? [...cat.defaultSize]) as Size3), size = fit.size;
             let pos: Vec2, rot = op.rot ?? 0, elevation = op.elevation, rel = "";
             if (op.place && "wall" in op.place) ({ pos, rot } = resolvePlace(d, { ...op.place, room: op.room }, size));
             else if (op.place) {
-              const ref = relTarget(op.place, `没加 ${op.name}，`); if (!ref) break;
+              const ref = relTarget(op.place, `没加 ${nm}，`); if (!ref) break;
               const r = resolveRelative(ref, op.place, op.type, size);
               ({ pos, rot } = r); if (r.elevation != null) elevation = r.elevation;
               rel = relText(op.place, ref);
             }
             else if (op.pos) pos = op.pos;
-            else { errors.push(`${op.name} 没给位置，跳过`); break; }
+            else { errors.push(`${nm} 没给位置，跳过`); break; }
             if (op.rot != null) rot = op.rot;
-            const it: Item = { id: newId(d, "ai"), type: op.type, name: op.name, room: op.room, pos, rot, size };
-            for (const k of ["spec", "variant", "finish", "color", "optional", "note"] as const) if (op[k] != null) (it as Record<string, unknown>)[k] = op[k];
+            const it: Item = { id: newId(d, "ai"), type: op.type, name: nm, room: op.room, pos, rot, size };
+            for (const k of ["spec", "variant", "finish", "optional", "note"] as const) if (op[k] != null) (it as Record<string, unknown>)[k] = op[k];
+            if (op.color) it.color = (FABRIC_COLORS as Palette)[op.color];
             if (elevation) it.elevation = elevation;
             if (op.price != null) { it.price = op.price; it.priceBasis = "llm"; }
             if (cat.variants && it.variant && !cat.variants.includes(it.variant)) delete it.variant;
             d.furniture.push(it); touched.push(it.id);
             added = it.id;
-            lines.push(`在${roomName(op.room)}加 ${op.name}（${Math.round(size[0] * 100)}×${Math.round(size[1] * 100)} cm${op.price != null ? `，约 ¥${op.price}` : ""}${rel}）`);
+            if (fit.note) sizeNotes.push(`${nm}：${fit.note}`);
+            lines.push(`在${roomName(op.room)}加 ${nm}（${Math.round(size[0] * 100)}×${Math.round(size[1] * 100)} cm${op.price != null ? `，约 ¥${op.price}` : ""}${rel}）`);
           } finally { refs.add(op.type, op.ref, added); }
           break;
         }
@@ -315,17 +341,32 @@ export function applyOps(house: House, ops: Op[]): ApplyResult {
           }
           const it = editable(op.id); if (!it) break;
           const label = name(it), changed: string[] = [];
+          let reshaped = false;
           // 只记真正变了的字段：大模型常把原值原样再写一遍
-          for (const k of ["name", "spec", "size", "rot", "elevation", "variant", "finish", "color", "optional", "note"] as const) {
+          if (op.size) {
+            const fit = fitSize(it.type, op.size, it.size);
+            if (fit.note) sizeNotes.push(`${label}：${fit.note}`);
+            if (JSON.stringify(fit.size) !== JSON.stringify(it.size)) { it.size = fit.size; changed.push(`尺寸 ${fit.size.map(cmText).join("×")} cm`); reshaped = true; }
+          }
+          for (const k of ["name", "spec", "rot", "elevation", "variant", "finish", "optional", "note"] as const) {
             if (op[k] == null || JSON.stringify(it[k]) === JSON.stringify(op[k])) continue;
-            (it as Record<string, unknown>)[k] = op[k]; changed.push(FIELD_LABEL[k]);
+            (it as Record<string, unknown>)[k] = op[k];
+            changed.push(k === "finish" ? `木色 ${WOOD_LABEL[op.finish!]}` : FIELD_LABEL[k]);
+            if (k === "rot") reshaped = true;
+          }
+          if (op.color !== undefined) {
+            const hex = op.color ? (FABRIC_COLORS as Palette)[op.color] : undefined;
+            if ((hex ?? "").toUpperCase() !== (it.color ?? "").toUpperCase()) {
+              if (hex) it.color = hex; else delete it.color;
+              changed.push(op.color ? `颜色 ${op.color}` : "颜色跟随整体风格");
+            }
           }
           if (op.price != null && op.price !== it.price) {
             changed.push(it.price == null ? `价格 约 ¥${op.price}` : `价格 ¥${it.price} → 约 ¥${op.price}`);
             it.price = op.price; it.priceBasis = "llm";
           }
           if (!changed.length) { errors.push(`${label} 没有要改的地方，跳过`); break; }
-          if (changed.includes(FIELD_LABEL.size) || changed.includes(FIELD_LABEL.rot)) touched.push(it.id);
+          if (reshaped) touched.push(it.id);
           lines.push(`改 ${label}：${changed.join("、")}`);
           break;
         }
@@ -342,16 +383,20 @@ export function applyOps(house: House, ops: Op[]): ApplyResult {
           if (op.floor && op.floor !== r.floor) { r.floor = op.floor; ch.push(`地面换成${FLOOR_LABEL[op.floor]}`); }
           if (op.wall && op.wall !== r.wall) { r.wall = op.wall; ch.push(`墙面换成${WALL_LABEL[op.wall]}`); }
           // 地板颜色只对木地板有效，墙面颜色只对乳胶漆有效（见 three/materials.ts）
-          const color = (key: "floorColor" | "wallColor", v: string | null | undefined, applies: boolean, label: string) => {
-            if (v === undefined || (v ?? "").toUpperCase() === (r[key] ?? "").toUpperCase()) return;
-            if (v && !applies) { skipped.push(`${r.name}的${label}换不了（${key === "floorColor" ? "不是木地板" : "墙面不是乳胶漆"}），跳过`); return; }
-            if (v) { r[key] = v; ch.push(`${label} ${v}`); } else { delete r[key]; ch.push(`${label}跟随整体风格`); }
+          const color = (key: "floorColor" | "wallColor", v: string | null | undefined, palette: Palette, applies: boolean, label: string) => {
+            if (v === undefined) return;
+            const hex = v ? palette[v] : undefined;
+            if ((hex ?? "").toUpperCase() === (r[key] ?? "").toUpperCase()) return;
+            if (hex && !applies) { skipped.push(`${r.name}的${label}换不了（${key === "floorColor" ? "不是木地板" : "墙面不是乳胶漆"}），跳过`); return; }
+            if (hex) { r[key] = hex; ch.push(`${label} ${v}`); } else { delete r[key]; ch.push(`${label}跟随整体风格`); }
           };
-          color("floorColor", op.floorColor, r.floor === "wood", "地板颜色");
-          color("wallColor", op.wallColor, r.wall === "paint", "墙面颜色");
+          color("floorColor", op.floorColor, FLOOR_COLORS, r.floor === "wood", "地板颜色");
+          color("wallColor", op.wallColor, WALL_COLORS, r.wall === "paint", "墙面颜色");
           errors.push(...skipped);
+          // 只把颜色设回跟随风格、而它本来就跟随风格时不提：2026-11-25 实测换风格时大模型会给每个房间都发一条
+          const asked = op.floor || op.wall || op.floorColor || op.wallColor;
           if (ch.length) lines.push(`${r.name}：${ch.join("、")}`);
-          else if (!skipped.length) errors.push(`${r.name}的地面墙面本来就是这样，跳过`);
+          else if (!skipped.length && asked) errors.push(`${r.name}的地面墙面本来就是这样，跳过`);
           break;
         }
         case "setTheme":
@@ -375,7 +420,7 @@ export function applyOps(house: House, ops: Op[]): ApplyResult {
     } catch (err) { errors.push((err as Error).message); }
   }
   const out = parseHouse(d);   // 最后整体校验一遍，格式不对直接抛错
-  return { house: out, lines, errors, warnings: [...checkPlacement(out, touched), ...duplicateExtras(out, addedExtras)], touched };
+  return { house: out, lines, errors, warnings: [...sizeNotes, ...checkPlacement(out, touched), ...duplicateExtras(out, addedExtras)], touched };
 }
 /**
  * 清单项可能重复：新加的项和清单里别的项“核心名称”相同或互相包含。
