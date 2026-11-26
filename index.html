@@ -19,6 +19,7 @@
     <button type="button" role="tab" id="tab-2d" data-tab="2d" aria-selected="false" aria-controls="pane-2d">2D 编辑</button>
   </div>
   <div class="actions">
+    <button type="button" class="btn primary" id="btn-from-plan" title="上传户型图，自动识别出墙、门窗和房间，再一键布置家具">从户型图生成</button>
     <button type="button" class="btn" id="btn-undo" title="撤销（Ctrl+Z）" disabled>撤销</button>
     <button type="button" class="btn" id="btn-redo" title="重做（Ctrl+Shift+Z）" disabled>重做</button>
     <details class="menu" id="file-menu">
@@ -28,6 +29,7 @@
         <button type="button" data-file="example">打开示例：01 房</button>
         <button type="button" data-file="import">导入 JSON…</button>
         <button type="button" data-file="export">导出 JSON</button>
+        <button type="button" data-file="previous" hidden>恢复上一个方案</button>
       </div>
     </details>
     <input type="file" id="file-input" accept=".json,application/json" hidden>
@@ -43,7 +45,7 @@
       </div>
       <div class="viewer" id="viewer" tabindex="0" aria-label="3D 户型，可拖动转头、点地面走动">
         <div class="info" id="info" hidden aria-live="polite"></div>
-        <div class="empty" id="empty3d" hidden>还没有墙。到“2D 编辑”里上传户型图描一遍，或者在“文件”里打开示例。</div>
+        <div class="empty" id="empty3d" hidden>还没有墙。点右上角“从户型图生成”上传户型图，或者到“2D 编辑”里自己描；也可以在“文件”里打开示例。</div>
       </div>
     </div>
     <div id="pane-2d" class="pane" role="tabpanel" aria-labelledby="tab-2d" hidden></div>
@@ -61,6 +63,7 @@
   </aside>
 </main>
 <dialog class="render-dlg" id="render-dlg" aria-label="出效果图"></dialog>
+<dialog class="render-dlg furnish-dlg" id="furnish-dlg" aria-label="布置家具"></dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 <script type="module" src="/src/main.ts"></script>
 </body>

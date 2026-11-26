@@ -16,6 +16,7 @@ export function renderPlanPanel(app: App, box: HTMLElement) {
   const items = h.furniture.map(f => `<li><button type="button" data-item="${esc(f.id)}" aria-current="${f.id === app.selected}"><span>${esc(f.name || CATALOG_BY_TYPE[f.type]?.nameZh || f.type)}</span><span class="muted">${esc(h.rooms.find(r => r.id === f.room)?.name ?? "")}</span></button></li>`).join("");
   box.innerHTML = `
     <section class="card props" id="props" hidden></section>
+    <button type="button" class="btn" data-furnish>布置家具…</button>
     <section class="field"><h3>整体风格</h3>
       <div class="themes">${THEME_IDS.map(id => {
         const t = THEMES[id];
@@ -30,6 +31,7 @@ export function renderPlanPanel(app: App, box: HTMLElement) {
   box.onclick = e => {
     const t = e.target as HTMLElement;
     if (t.closest("#props")) return;
+    if (t.closest("[data-furnish]")) { app.furnish(); return; }
     const th = t.closest<HTMLElement>("[data-theme-id]")?.dataset.themeId;
     if (th && th !== h.theme) app.store.commit("换风格", d => { d.theme = th as typeof d.theme; });
     const room = t.closest<HTMLElement>("[data-room]")?.dataset.room;

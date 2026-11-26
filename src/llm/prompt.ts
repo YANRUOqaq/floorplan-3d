@@ -45,6 +45,7 @@ export const SYSTEM_PROMPT = `你是室内软装设计助手，帮用户在已�
 - {"op":"setTheme","theme":"${Object.keys(THEMES).join("|")}"}
 - {"op":"addExtra","name":"名称","price":元,"spec":"规格","room":房间id,"optional":true或false}（清单里没有 3D 外形的东西：床垫、床品、收纳盒、五金、运费等）
 - {"op":"removeExtra","id":清单项id}
+- {"op":"furnish","room":房间id 或 "all"}：让程序按房间用途自动摆好常用家具（床和床头柜、衣柜、沙发、电视柜、餐桌椅、灯、地毯、窗帘……），保证不挡门窗、不重叠，房间里已有的同类家具不重复加。用户要布置空房间、或者要“整套布置”时先用它，再用 add/update 按用户的特别要求增改；要“重新布置”某个房间时，先 remove 掉它原来的家具，再 furnish。furnish 加的家具这一次还没有 id，不能在同一次回复里引用、也没有价格，价格下一轮再估。
 
 ## 规则
 - fixed 为 true 的是房子原有的设施，不能移动、修改或删除。

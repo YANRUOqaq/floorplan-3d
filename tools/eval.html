@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>户型识别评测（开发用）</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; margin: 16px; color: #222; }
+  table { border-collapse: collapse; margin: 8px 0; }
+  td, th { border: 1px solid #ccc; padding: 3px 8px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  pre { background: #f4f4f4; padding: 8px; max-height: 240px; overflow: auto; font-size: 12px; }
+  .case { border-top: 1px solid #ddd; padding-top: 8px; margin-top: 12px; }
+  svg { border: 1px solid #ddd; background: #fff; }
+  button { margin-right: 8px; }
+</style>
+</head>
+<body>
+<h2>户型识别评测（开发用，不发布）</h2>
+<p>读 <code>local/eval/cases.json</code> 里的每张户型图，用“大模型”设置里填过 Key 的识图模型识别，和标准答案比。灰线是标准答案，蓝线是识别结果（已对齐）。</p>
+<p id="key"></p>
+<p><button id="run">全部识别一遍（会调用接口、按次计费）</button><button id="rescore">用上次的识别结果重算（不调用接口）</button><span id="status"></span></p>
+<div id="sum"></div>
+<div id="out"></div>
+<script type="module" src="./eval.ts"></script>
+</body>
+</html>

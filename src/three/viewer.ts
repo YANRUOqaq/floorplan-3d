@@ -55,6 +55,8 @@ export class Viewer {
   private dirty = true;
   private mode3d: "walk" | "orbit" | "" = "";
   private current = "";
+  /** 上次载入的房子外框（墙和房间），用来判断是不是换了一套房子 */
+  private box: { x0: number; x1: number; z0: number; z1: number } | null = null;
   private fly: { t0: number; from: { pos: THREE.Vector3; tgt: THREE.Vector3 }; to: { pos: THREE.Vector3; tgt: THREE.Vector3 } } | null = null;
   private fp = { x: 1, z: 1, yaw: 0, pitch: 0, tYaw: 0, tPitch: 0, fov: 62, tFov: 62, anim: null as null | { x0: number; z0: number; x1: number; z1: number; t0: number; dur: number } };
   private reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -135,8 +137,13 @@ export class Viewer {
     const keep = b.views.find(v => v.key === this.current);
     const first = keep ?? b.views.find(v => !v.orbit && house.rooms.find(r => r.id === v.key)?.type === "living") ?? b.views.find(v => !v.orbit) ?? b.views[0];
     this.mode3d = "";
-    // 同一个视角下重建（比如改了家具）时不重置相机
-    const cam = keep ? { pos: this.camera.position.clone(), tgt: this.controls.target.clone(), fp: { ...this.fp } } : null;
+    // 同一个视角下、房子外框没变时重建（比如改了家具）不重置相机。
+    // 外框变了（新建、打开示例、导入、刚描完墙）就按新房子重新摆相机：“鸟瞰”“俯视”每套房子都有，
+    // 只看视角名会沿用上一套房子的相机位置，2026-11-25 实测新建后画完墙，鸟瞰只拍到一个墙角
+    const prev = this.box, box = b.bbox;
+    this.box = box;
+    const sameShell = !!prev && (["x0", "x1", "z0", "z1"] as const).every(k => Math.abs(prev[k] - box[k]) < 0.05);
+    const cam = keep && sameShell ? { pos: this.camera.position.clone(), tgt: this.controls.target.clone(), fp: { ...this.fp } } : null;
     this.setView(first.key, true);
     if (cam && keep) {
       if (keep.orbit) { this.camera.position.copy(cam.pos); this.controls.target.copy(cam.tgt); this.controls.update(); }

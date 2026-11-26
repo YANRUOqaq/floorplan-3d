@@ -17,6 +17,8 @@ import { CATALOG_BY_TYPE, FURNITURE_TYPES, cmText, rangeText } from "./catalog";
 import { FLOOR_FINISHES, FLOOR_LABEL, THEME_IDS, WALL_FINISHES, WALL_LABEL, WOOD_FINISHES, WOOD_LABEL, parseHouse, type House, type Item, type Room, type Vec2 } from "./schema";
 import { FABRIC_COLORS, FLOOR_COLORS, THEMES, WALL_COLORS, type Palette } from "./themes";
 import { bbox, convexOverlap, distToSegment, itemFootprint, pointInPolygon, wallFrame, wallPoint } from "./geometry";
+// furnish.ts 也 import 本文件（checkPlacement 等）；两边都只在函数里用对方的导出，循环引用没问题
+import { furnishHouse } from "./furnish";
 
 const Num = z.number().finite();
 const Size = z.tuple([Num.positive(), Num.positive(), Num.positive()]);
@@ -83,6 +85,8 @@ export const Op = z.discriminatedUnion("op", [
   z.object({ op: z.literal("setTheme"), theme: z.enum(THEME_IDS) }),
   z.object({ op: z.literal("addExtra"), name: z.string().min(1).max(60), price: Num.min(0), spec: z.string().max(120).optional(), room: z.string().optional(), optional: z.boolean().optional(), note: z.string().max(200).optional() }),
   z.object({ op: z.literal("removeExtra"), id: z.string() }),
+  // 让程序按房间用途自动摆常用家具（规则见 furnish.ts）：比大模型一件件算坐标稳，换哪个模型都不会挡门挡窗
+  z.object({ op: z.literal("furnish"), room: z.string() }),
 ]);
 export type Op = z.infer<typeof Op>;
 
@@ -407,6 +411,16 @@ export function applyOps(house: House, ops: Op[]): ApplyResult {
           const e = { id: newId(d, "x"), name: op.name, price: op.price, priceBasis: "llm" as const, ...(op.spec ? { spec: op.spec } : {}), ...(op.room ? { room: op.room } : {}), ...(op.optional ? { optional: true } : {}), ...(op.note ? { note: op.note } : {}) };
           d.extras.push(e); addedExtras.push(e.id);
           lines.push(`清单加一项：${op.name}，约 ¥${op.price}`);
+          break;
+        }
+        case "furnish": {
+          if (op.room !== "all" && !d.rooms.some(r => r.id === op.room)) { errors.push(`房间 ${op.room} 不存在，没有自动布置`); break; }
+          const r = furnishHouse(d, op.room === "all" ? undefined : [op.room]);
+          const sub = applyOps(d, r.ops);
+          // 规则布置只加家具，直接换成套用后的家具列表
+          d.furniture = sub.house.furniture;
+          touched.push(...sub.touched); errors.push(...sub.errors);
+          lines.push(...(r.notes.length ? r.notes.map(n => "自动布置 " + n) : [`自动布置${op.room === "all" ? "全屋" : roomName(op.room)}：没有要加的`]));
           break;
         }
         case "removeExtra": {

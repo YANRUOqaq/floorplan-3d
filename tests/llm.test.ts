@@ -419,3 +419,21 @@ describe("尺寸限制在常见范围内、颜色只能从色板里选", () => {
     expect(formatIssues(w.error!)).toMatch(/墙面颜色 wallColor 只能写色板里的名字/);
   });
 });
+
+describe("自动布置指令 furnish", () => {
+  const shell = parseHouse({ ...example, furniture: example.furniture.filter(f => f.fixed), extras: [] });
+  it("布置一个房间：只加这个房间的家具，摆放没有问题", () => {
+    const r = applyOps(shell, LlmReply.parse({ reply: "", ops: [{ op: "furnish", room: "master" }] }).ops);
+    const added = r.house.furniture.filter(f => !f.fixed);
+    expect(added.length).toBeGreaterThan(3);
+    expect(added.every(f => f.room === "master")).toBe(true);
+    expect(added.some(f => f.type === "bed")).toBe(true);
+    expect(r.errors).toEqual([]);
+    expect(r.warnings).toEqual([]);
+  });
+  it("all 布置全屋；房间不存在时跳过并说明", () => {
+    const r = applyOps(shell, [{ op: "furnish", room: "all" }, { op: "furnish", room: "nope" }] as Op[]);
+    expect(new Set(r.house.furniture.filter(f => !f.fixed).map(f => f.room)).size).toBeGreaterThan(6);
+    expect(r.errors.some(e => e.includes("nope"))).toBe(true);
+  });
+});

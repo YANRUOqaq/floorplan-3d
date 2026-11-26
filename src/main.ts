@@ -16,6 +16,7 @@ import { renderPlanPanel } from "./ui/plan";
 import { renderBudget } from "./ui/budget";
 import { initChat } from "./ui/chat";
 import { initRenderDialog } from "./ui/renderDialog";
+import { initFurnishDialog } from "./ui/furnishDialog";
 
 const store = new Store(Store.restore(localStorage) ?? parseHouse(example), localStorage);
 
@@ -37,6 +38,7 @@ const app: App = {
   viewer: null as unknown as Viewer,
   selected: null,
   showSide, showTab,
+  furnish: () => furnishDlg.open(),
   /** 选中任何东西（墙、门窗、房间、家具）都走这里，3D、2D、面板一起更新 */
   select(id) {
     app.selected = id;
@@ -79,7 +81,8 @@ function onChange(h: House) {
   editor?.render();
 }
 editor = new Editor($("#pane-2d"), app);
-initChat(app, $("#side-ai"));
+const chat = initChat(app, $("#side-ai"));
+const furnishDlg = initFurnishDialog(app, chat);
 initRenderDialog(app);
 store.subscribe(onChange);
 onChange(store.house);
@@ -100,28 +103,64 @@ document.addEventListener("keydown", e => {
   else if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); store.redo(); }
 });
 
-/* ---------- 文件：新建、示例、导入、导出 ---------- */
+/* ---------- 文件：新建、示例、导入、导出、恢复上一个方案 ---------- */
 const fileInput = $<HTMLInputElement>("#file-input");
 const menu = $("#file-menu") as HTMLDetailsElement;
+const EXAMPLE_JSON = JSON.stringify(parseHouse(example));
+
+/**
+ * 整份替换当前方案。当前方案有内容（不是空的、也不是没改过的示例）时先确认，并存成“上一个方案”：
+ * 浏览器里只有一个自动保存位，撤销记录刷新就没了，以前点一下“新建”就可能永久丢掉描了几小时的方案。
+ */
+function replacePlan(next: House, why: string): boolean {
+  const cur = store.house;
+  const worth = (cur.walls.length > 0 || cur.furniture.length > 0) && JSON.stringify(cur) !== EXAMPLE_JSON;
+  if (worth) {
+    if (!confirm(`当前方案“${cur.name}”会被替换。
+替换前会自动留一份，之后可以在“文件 → 恢复上一个方案”找回。继续吗？`)) return false;
+    Store.savePrevious(localStorage, cur);
+  }
+  store.replace(next, why);
+  return true;
+}
+function updatePrevItem() {
+  const prev = Store.loadPrevious(localStorage), b = $<HTMLButtonElement>('[data-file="previous"]');
+  b.hidden = !prev;
+  if (prev) b.textContent = `恢复上一个方案：${prev.name}`;
+}
+menu.addEventListener("toggle", () => { if (menu.open) updatePrevItem(); });
 menu.addEventListener("click", e => {
   const b = (e.target as HTMLElement).closest<HTMLElement>("[data-file]"); if (!b) return;
   menu.open = false;
   const act = b.dataset.file;
-  if (act === "new") { store.replace(emptyHouse(), "新建"); showTab("2d"); }
-  else if (act === "example") { store.replace(parseHouse(example), "打开示例"); toast("已打开示例 01 房。按“撤销”可以回到之前的方案。"); }
+  if (act === "new") { if (replacePlan(emptyHouse(), "新建")) showTab("2d"); }
+  else if (act === "example") { if (replacePlan(parseHouse(example), "打开示例")) toast("已打开示例 01 房。"); }
   else if (act === "import") fileInput.click();
   else if (act === "export") download(`${store.house.name}.json`, JSON.stringify(store.house, null, 1));
+  else if (act === "previous") {
+    // 和当前方案互换：恢复之后还能再换回来
+    const prev = Store.loadPrevious(localStorage); if (!prev) return;
+    Store.savePrevious(localStorage, store.house);
+    store.replace(prev, "恢复上一个方案");
+    toast(`已恢复“${prev.name}”。刚才的方案存成了上一个方案，可以再换回来。`);
+  }
 });
 fileInput.addEventListener("change", async () => {
   const f = fileInput.files?.[0]; fileInput.value = ""; if (!f) return;
   try {
-    store.replace(parseHouse(JSON.parse(await f.text())), "导入");
-    toast(`已导入 ${f.name}`);
+    if (replacePlan(parseHouse(JSON.parse(await f.text())), "导入")) toast(`已导入 ${f.name}`);
   } catch (err) {
     toast(err instanceof SyntaxError ? `${f.name} 不是有效的 JSON：${err.message}` : (err as Error).message, true);
   }
 });
 document.addEventListener("click", e => { if (menu.open && !menu.contains(e.target as Node)) menu.open = false; });
+
+/* ---------- 从户型图生成：新建方案 → 上传 → 框选识别（编辑器里）→ 检查 → 布置家具 ---------- */
+$("#btn-from-plan").addEventListener("click", () => {
+  if (!replacePlan(emptyHouse(), "新建")) return;
+  showTab("2d");
+  editor!.upload();
+});
 
 /* ---------- 视图切换 ---------- */
 $$("[data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab as "3d" | "2d")));

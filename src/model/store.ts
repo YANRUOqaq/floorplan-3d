@@ -49,9 +49,21 @@ export class Store {
   }
 
   /** 读上次自动保存的方案；没有或已损坏时返回 null */
-  static restore(storage: Pick<Storage, "getItem">): House | null {
-    const s = storage.getItem(KEY);
-    if (!s) return null;
-    try { return parseHouse(JSON.parse(s)); } catch { return null; }
+  static restore(storage: Pick<Storage, "getItem">): House | null { return read(storage, KEY); }
+
+  /**
+   * “上一个方案”：新建、打开示例、导入会整份替换当前方案，替换前把它存到这里，
+   * 刷新页面后撤销记录没了也能找回（浏览器里只有一个自动保存位，2026-11-25 评审时发现会丢方案）。
+   */
+  static savePrevious(storage: Pick<Storage, "setItem">, h: House) {
+    try { storage.setItem(PREV_KEY, JSON.stringify(h)); } catch { /* 存储满了：只是找不回，不影响当前操作 */ }
   }
+  static loadPrevious(storage: Pick<Storage, "getItem">): House | null { return read(storage, PREV_KEY); }
+}
+
+const PREV_KEY = "floorplan-3d:previous";
+function read(storage: Pick<Storage, "getItem">, key: string): House | null {
+  const s = storage.getItem(key);
+  if (!s) return null;
+  try { return parseHouse(JSON.parse(s)); } catch { return null; }
 }

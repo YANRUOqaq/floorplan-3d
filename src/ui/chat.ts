@@ -19,7 +19,7 @@ const QUICK = [
   "检查一下有没有家具挡门或者太挤，帮我调整",
 ];
 
-export function initChat(app: App, box: HTMLElement) {
+export function initChat(app: App, box: HTMLElement): { send(text: string): Promise<void>; hasKey(): boolean } {
   let s = loadSettings();
   const msgs: Msg[] = [];
   const turns: Turn[] = [];
@@ -37,15 +37,17 @@ export function initChat(app: App, box: HTMLElement) {
         <datalist id="llm-models"></datalist>
         <label class="field wide"><span>API Key</span><input type="password" id="llm-key" autocomplete="off" spellcheck="false"></label>
       </div>
-      <div class="row"><button type="button" class="btn small" id="llm-list">获取模型列表</button><button type="button" class="btn small danger" id="llm-clear">清除 Key</button><a id="llm-keyurl" target="_blank" rel="noopener" class="note">去哪里申请 Key</a></div>
-      <p class="note">Key 只保存在这个浏览器里。提问时，户型数据（墙、房间、家具）和你说的话会直接发给上面这家厂商；本站没有服务器，不经手这些数据。在公用电脑上用完请点“清除 Key”。调用按厂商价格计费。</p>
+      <div class="row"><button type="button" class="btn small" id="llm-list">获取模型列表</button><button type="button" class="btn small danger" id="llm-clear">清除所有 Key</button><a id="llm-keyurl" target="_blank" rel="noopener" class="note">去哪里申请 Key</a></div>
+      <p class="note">Key 只保存在这个浏览器里，每家厂商分开存。提问时，户型数据（墙、房间、家具）和你说的话会直接发给上面这家厂商；本站没有服务器，不经手这些数据。在公用电脑上用完请点“清除所有 Key”。调用按厂商价格计费。</p>
     </details>
     <div class="chat-log" id="chat-log" aria-live="polite"></div>
-    <div class="chips chat-quick">${QUICK.map(q => `<button type="button" class="chip" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
-    <form class="chat-input" id="chat-form">
-      <textarea id="chat-text" rows="3" placeholder="比如：主卧按原木风布置，床 1.5 m，预算 5000 以内"></textarea>
-      <div class="row"><button type="submit" class="btn primary" id="chat-send">发送</button><button type="button" class="btn" id="chat-stop" hidden>停止</button><span class="note" id="chat-status"></span></div>
-    </form>`;
+    <div class="chat-foot">
+      <div class="chips chat-quick">${QUICK.map(q => `<button type="button" class="chip" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+      <form class="chat-input" id="chat-form">
+        <textarea id="chat-text" rows="3" placeholder="比如：主卧按原木风布置，床 1.5 m，预算 5000 以内"></textarea>
+        <div class="row"><button type="submit" class="btn primary" id="chat-send">发送</button><button type="button" class="btn" id="chat-stop" hidden>停止</button><span class="note" id="chat-status"></span></div>
+      </form>
+    </div>`;
   const q = <T extends HTMLElement>(sel: string) => box.querySelector(sel) as T;
   const fields = { provider: q<HTMLSelectElement>("#llm-provider"), base: q<HTMLInputElement>("#llm-base"), model: q<HTMLInputElement>("#llm-model"), vmodel: q<HTMLInputElement>("#llm-vmodel"), imodel: q<HTMLInputElement>("#llm-imodel"), key: q<HTMLInputElement>("#llm-key") };
 
@@ -61,13 +63,10 @@ export function initChat(app: App, box: HTMLElement) {
   function readSettings(): LlmSettings {
     return { provider: fields.provider.value, baseURL: fields.base.value.trim(), model: fields.model.value.trim(), visionModel: fields.vmodel.value.trim(), imageModel: fields.imodel.value.trim(), apiKey: fields.key.value.trim() };
   }
-  fields.provider.addEventListener("change", () => {
-    const p = PROVIDERS.find(p => p.id === fields.provider.value)!;
-    s = { ...readSettings(), provider: p.id, baseURL: p.baseURL, model: p.model, visionModel: p.visionModel, imageModel: p.imageModel };
-    saveSettings(s); showSettings();
-  });
+  // 换厂商时读那一家自己存的设置和 Key（每家分开存，见 providers.ts）
+  fields.provider.addEventListener("change", () => { s = loadSettings(localStorage, fields.provider.value); saveSettings(s); showSettings(); });
   for (const f of [fields.base, fields.model, fields.vmodel, fields.imodel, fields.key]) f.addEventListener("change", () => { s = readSettings(); saveSettings(s); showSettings(); });
-  q("#llm-clear").addEventListener("click", () => { clearKey(); s = loadSettings(); showSettings(); toast("已从这个浏览器里清除 Key。"); });
+  q("#llm-clear").addEventListener("click", () => { clearKey(); s = loadSettings(); showSettings(); toast("已从这个浏览器里清除所有厂商的 Key。"); });
   q("#llm-list").addEventListener("click", async () => {
     try {
       const ids = await listModels(readSettings());
@@ -143,4 +142,6 @@ export function initChat(app: App, box: HTMLElement) {
   q("#chat-stop").addEventListener("click", () => busy?.abort());
   box.querySelector(".chat-quick")!.addEventListener("click", e => { const b = (e.target as HTMLElement).closest<HTMLElement>("[data-q]"); if (b) text.value = b.dataset.q!; text.focus(); });
   render();
+  /** 布置家具对话框里填的想法，直接当一条消息发出去 */
+  return { send, hasKey: () => !!loadSettings().apiKey };
 }

@@ -4,7 +4,7 @@
  */
 import type { App } from "./app";
 import { $, download, esc } from "./dom";
-import { loadSettings } from "../llm/providers";
+import { findSettings } from "../llm/providers";
 import { dashscopeOrigin, refineImage, refineSize } from "../llm/refine";
 
 type Kind = "still" | "pano";
@@ -105,8 +105,9 @@ export function initRenderDialog(app: App) {
   aiView.addEventListener("click", e => { const b = (e.target as HTMLElement).closest<HTMLElement>("[data-show]"); if (b) showAi(b.dataset.show === "ai"); });
   aiBtn.addEventListener("click", async () => {
     if (!result?.size || busy) return;
-    const s = loadSettings();
-    if (!dashscopeOrigin(s.baseURL) || !s.apiKey || !s.imageModel) {
+    // 用填过 Key 的百炼设置，不要求它是“大模型”面板当前选的厂商（可以 DeepSeek 聊天、千问精修）
+    const s = findSettings(s => !!dashscopeOrigin(s.baseURL) && !!s.imageModel);
+    if (!s) {
       status.textContent = "AI 精修要用通义千问（阿里云百炼）的图像编辑模型：先在右侧“大模型”面板选这家厂商、填 Key 和图像模型。";
       return;
     }

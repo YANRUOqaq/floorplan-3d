@@ -12,4 +12,6 @@ export interface App {
   showTab(t: "3d" | "2d"): void;
   /** 选中一件家具，3D、2D、面板一起更新 */
   select(id: string | null): void;
+  /** 打开“布置家具”对话框（选风格、自动布置、可选让大模型按想法改） */
+  furnish(): void;
 }

@@ -15,8 +15,10 @@ import type { App } from "../ui/app";
 import { esc, toast, uid } from "../ui/dom";
 import { clearBg, imageSize, loadBg, saveBg } from "./bg";
 import { nearestWall, placeOnWall, snap, snapTargets, type SnapResult } from "./snap";
-import { applyDraft, draftFromRecognition, recognize } from "../llm/recognize";
-import { loadSettings } from "../llm/providers";
+import { detectInImage, draftFromReading, prepareImages, readPlan, type Draft, type Reading } from "../llm/recognize";
+import type { Detection } from "../model/raster";
+import { applyDraft } from "../model/draft";
+import { findSettings } from "../llm/providers";
 
 export type Tool = "select" | "wall" | "opening" | "room" | "item" | "calibrate" | "recog";
 type OpeningType = (typeof OPENING_TYPES)[number];
@@ -61,6 +63,12 @@ export class Editor {
   private bg: { url: string; w: number; h: number } | null = null;
   private bgHidden = false;
   private fitted = false;
+  /** 上次识别读到的内容：改了尺寸数字可以不调接口重算 */
+  private reading: Reading | null = null;
+  /** 上次识别时从像素里找到的墙和房间（不花钱，和 reading 一起重算） */
+  private detection: Detection | null = null;
+  /** 正在识别：按 Esc 停止 */
+  private busy: AbortController | null = null;
 
   constructor(private root: HTMLElement, private app: App) {
     root.innerHTML = `
@@ -72,24 +80,33 @@ export class Editor {
           <button type="button" data-tool="room" title="拖一个矩形，或逐点单击围出多边形（R）">房间</button>
           <button type="button" data-tool="item" title="单击放家具（F）">家具</button>
         </div>
-        <label class="ed-opt" data-for="wall">墙厚
-          <select id="ed-thick"><option value="0.24">24 cm</option><option value="0.2" selected>20 cm</option><option value="0.12">12 cm</option><option value="0.1">10 cm</option></select></label>
-        <label class="ed-opt" data-for="opening">类型
-          <select id="ed-opening">${OPENING_TYPES.map(t => `<option value="${t}">${OPENING_LABEL[t]}</option>`).join("")}</select></label>
-        <label class="ed-opt" data-for="item">家具
-          <select id="ed-item">${groupedCatalog()}</select></label>
         <span class="ed-sep"></span>
         <button type="button" class="btn small" id="ed-upload">上传户型图</button>
-        <button type="button" class="btn small" data-tool="calibrate" id="ed-calib" title="在底图上点两个点，输入它们之间的实际长度">标定比例</button>
-        <label class="ed-opt ed-bgopt">底图<input type="range" id="ed-opacity" min="0" max="1" step="0.05"></label>
-        <button type="button" class="btn small" id="ed-bgtoggle">隐藏底图</button>
-        <button type="button" class="btn small danger" id="ed-bgdel" title="从浏览器里删掉这张底图">删除底图</button>
+        <span class="ed-bgtools" id="ed-bgtools" hidden>
+          <button type="button" class="btn small" data-tool="calibrate" id="ed-calib" title="在底图上点两个点，输入它们之间的实际长度">标定比例</button>
+          <label class="ed-opt ed-bgopt">底图<input type="range" id="ed-opacity" min="0" max="1" step="0.05"></label>
+          <button type="button" class="btn small" id="ed-bgtoggle">隐藏底图</button>
+          <button type="button" class="btn small danger" id="ed-bgdel" title="从浏览器里删掉这张底图">删除底图</button>
+          <button type="button" class="btn small" id="ed-recog" title="在户型图上框出你家那一户，让识图模型识别出墙、门窗和房间">识别户型图</button>
+        </span>
         <button type="button" class="btn small" id="ed-fit" title="缩放到能看到全部">适应窗口</button>
-        <button type="button" class="btn small" id="ed-recog" title="在户型图上框出你家那一户，发给识图模型识别出墙、门窗和房间的草稿">识别户型图（实验）</button>
         <input type="file" id="ed-file" accept="image/*" hidden>
       </div>
-      <div class="ed-calib" id="ed-calibbox" hidden></div>
-      <div class="ed-canvas"><svg id="ed-svg" tabindex="0" aria-label="户型平面图编辑区"></svg><div class="ed-hint" id="ed-hint"></div></div>`;
+      <div class="ed-canvas"><svg id="ed-svg" tabindex="0" aria-label="户型平面图编辑区"></svg>
+        <!-- 提示、工具选项、标定输入浮在画布上：放在画布上方会把画布往下挤，换工具时图会跳（2026-11-25 实测在 1440 宽时差一行） -->
+        <div class="ed-float">
+          <div class="ed-hint" id="ed-hint"></div>
+          <label class="ed-opt" data-for="wall">墙厚
+            <select id="ed-thick"><option value="0.24">24 cm</option><option value="0.2" selected>20 cm</option><option value="0.12">12 cm</option><option value="0.1">10 cm</option></select></label>
+          <label class="ed-opt" data-for="opening">类型
+            <select id="ed-opening">${OPENING_TYPES.map(t => `<option value="${t}">${OPENING_LABEL[t]}</option>`).join("")}</select></label>
+          <label class="ed-opt" data-for="item">家具
+            <select id="ed-item">${groupedCatalog()}</select></label>
+          <div class="ed-calib" id="ed-calibbox" hidden></div>
+          <button type="button" class="btn small" id="ed-whole" hidden>整张图就是一户</button>
+          <div class="ed-review" id="ed-review" hidden></div>
+        </div>
+      </div>`;
     this.svg = root.querySelector("#ed-svg") as SVGSVGElement;
     this.bar = root.querySelector(".ed-bar") as HTMLElement;
     this.calibBox = root.querySelector("#ed-calibbox") as HTMLElement;
@@ -137,7 +154,8 @@ export class Editor {
     if (t === "calibrate" && !this.bg) { toast("先上传户型图，再标定比例。", true); return; }
     this.tool = t; this.draft = []; this.calib = []; this.calibBox.hidden = true;
     this.bar.querySelectorAll<HTMLElement>("[data-tool]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.tool === t)));
-    this.bar.querySelectorAll<HTMLElement>(".ed-opt[data-for]").forEach(l => { l.hidden = l.dataset.for !== t; });
+    this.root.querySelectorAll<HTMLElement>(".ed-opt[data-for]").forEach(l => { l.hidden = l.dataset.for !== t; });
+    (this.root.querySelector("#ed-whole") as HTMLElement).hidden = t !== "recog";
     this.svg.style.cursor = t === "select" ? "default" : "crosshair";
     this.render();
   }
@@ -149,7 +167,7 @@ export class Editor {
       case "room": return this.draft.length ? "继续单击房间的角；点回第一个点或双击闭合。" : "按住拖一个矩形；不是矩形的房间就逐点单击围出来。沿墙中线描。";
       case "item": return `单击放一个${CATALOG_BY_TYPE[this.itemType]?.nameZh ?? ""}，放好后可以拖动、按 R 旋转。`;
       case "calibrate": return this.calib.length === 0 ? "在户型图上点一个标注了尺寸的线段的起点（比如轴线标注 3750 的一端）。" : "再点这段的终点。";
-      case "recog": return "按住拖一个框，框住你家那一户，别框进邻居家；松手就开始识别，一般要三四分钟。Esc 取消。";
+      case "recog": return "按住拖一个框，框住你家那一户（连阳台），别框进邻居家；松手就开始识别。整张图只有你家一户就点下面的“整张图就是一户”。Esc 取消。";
     }
   }
   private bindUI() {
@@ -163,7 +181,10 @@ export class Editor {
     q<HTMLSelectElement>("#ed-item").addEventListener("change", e => { this.itemType = (e.target as HTMLSelectElement).value; this.render(); });
     q<HTMLSelectElement>("#ed-item").value = this.itemType;
     const file = q<HTMLInputElement>("#ed-file");
-    q("#ed-upload").addEventListener("click", () => file.click());
+    q("#ed-upload").addEventListener("click", () => {
+      if (this.bg && this.app.store.house.background && !confirm("换一张户型图？现在这张会被替换，不能撤销。")) return;
+      this.upload();
+    });
     file.addEventListener("change", async () => {
       const f = file.files?.[0]; file.value = ""; if (!f) return;
       try { await this.setBackground(f); } catch (err) { toast((err as Error).message, true); }
@@ -179,10 +200,28 @@ export class Editor {
     q("#ed-bgtoggle").addEventListener("click", () => { this.bgHidden = !this.bgHidden; this.render(); });
     q("#ed-fit").addEventListener("click", () => this.fit());
     q("#ed-recog").addEventListener("click", () => this.startRecognize());
-    q("#ed-bgdel").addEventListener("click", () => { if (this.bg) this.removeBackground(); });
+    q("#ed-whole").addEventListener("click", () => this.recognizeBox(null));
+    // 识别结果浮层：改尺寸数字后重算、下一步布置家具、关闭
+    q("#ed-review").addEventListener("click", e => {
+      const act = (e.target as HTMLElement).closest<HTMLElement>("[data-rv]")?.dataset.rv;
+      if (act === "close") this.showReview("");
+      else if (act === "furnish") { this.showReview(""); this.app.furnish(); }
+      else if (act === "redo" && this.reading) {
+        for (const inp of q("#ed-review").querySelectorAll<HTMLInputElement>("[data-chain]")) {
+          const ch = this.reading.chains[+inp.dataset.chain!], nums = inp.value.trim().split(/[\s,，、]+/).filter(Boolean);
+          if (nums.length !== ch.mm.length) { toast(`“${inp.value}”是 ${nums.length} 个数，原来是 ${ch.mm.length} 段；只改数字，不要增减段数。`, true); return; }
+          ch.mm = nums.map(v => Number(v) > 0 ? Number(v) : null);
+        }
+        this.applyReading();
+      }
+    });
+    // 底图图片在浏览器里只存一张，删了、换了都撤销不回来（撤销只恢复标定），所以先确认
+    q("#ed-bgdel").addEventListener("click", () => { if (this.bg && confirm("删除这张户型图？删除后不能撤销，要用得重新上传。")) this.removeBackground(); });
   }
 
   /* ---------- 底图 ---------- */
+  /** 打开选图片的对话框（“从户型图生成”也走这里） */
+  upload() { (this.root.querySelector("#ed-file") as HTMLInputElement).click(); }
   async setBackground(f: Blob & { name?: string }) {
     const { w, h } = await imageSize(f);
     await saveBg({ blob: f, w, h, name: f.name ?? "户型图" });
@@ -191,8 +230,14 @@ export class Editor {
     this.app.store.commit("上传底图", d => { d.background = { pxPerM: w / 12, origin: [0, 0], opacity: 0.5 }; });
     this.bgHidden = false;
     this.fit();
-    this.setTool("calibrate");
-    toast("底图已载入。先标定比例：在图上点一段标了尺寸的线的两端。");
+    // 填过能看图的模型的 Key：直接框选识别（比例从图上的尺寸算）；没填就手动标定、描图
+    if (findSettings(s => !!s.visionModel)) {
+      this.setTool("recog");
+      toast("户型图已载入。拖一个框框住你家那一户，自动识别墙、门窗和房间；整张图就是你家就点“整张图就是一户”。", false, 7000);
+    } else {
+      this.setTool("calibrate");
+      toast("户型图已载入。想自动识别，先在右侧“大模型”面板填通义千问的 Key；自己描的话，先标定比例：在图上点一段标了尺寸的线的两端。", false, 8000);
+    }
   }
   async reloadBg() {
     try {
@@ -207,48 +252,72 @@ export class Editor {
     if (this.app.store.house.background) this.app.store.commit("删除底图", d => { delete d.background; });
   }
   /* ---------- 识别户型图 ---------- */
-  /** 先检查能不能识别，能的话切到“框选”工具，让用户框出自己那一户 */
-  private startRecognize() {
-    const b = this.app.store.house.background;
-    if (!this.bg || !b) { toast("先上传户型图。", true); return; }
-    if (b.pxPerMz == null) { toast("先标定比例：识别结果要靠比例换算成米。", true); return; }
-    const s = loadSettings();
-    if (!s.apiKey || !s.visionModel) { toast("先在“大模型”面板里填 API Key 和识图模型。", true); this.app.showSide("ai"); return; }
+  /** 先检查能不能识别，能的话切到“框选”工具，让用户框出自己那一户（整张图只有一户可以直接点“整张图就是一户”） */
+  startRecognize() {
+    if (!this.bg || !this.app.store.house.background) { toast("先上传户型图。", true); return; }
+    if (!findSettings(s => !!s.visionModel)) { toast("识别要用能看图的模型：先在右侧“大模型”面板选通义千问（或其他有识图模型的厂商），填上 Key。", true); this.app.showSide("ai"); return; }
     this.setTool("recog");
   }
   /**
-   * 只发框住的那一户：整栋楼的户型图里邻居家也有墙，一起发过去模型会混在一起。
-   * 2026-11-24 实测：发整个画面（带进了隔壁一户）时，识别出的墙只有约十分之一落在真实位置 30 cm 内；只框一户约四分之一。
-   * 框出的部分缩放到长边 1280 像素：户型图里一户往往只有两三百像素，太小模型看不清，太大又费钱。
-   * 结果整份替换墙和房间，可以撤销。
+   * 识别：本地先从像素找墙、洞口、房间，再让模型读尺寸、按编号认房间门窗（两次调用同时发，见 llm/recognize.ts），
+   * 最后算比例、合成墙和房间（model/scale.ts、model/fuse.ts）。比例也一起定好，不用再手动标定。
+   * box 是框的两个角（世界坐标），null 表示整张图。
    */
-  private async recognizeRect(a: Vec2, b: Vec2) {
-    const h = this.app.store.house, bgInfo = h.background, img = this.bg;
+  async recognizeBox(box: [Vec2, Vec2] | null) {
+    const bgInfo = this.app.store.house.background, img = this.bg;
     if (!img || !bgInfo) return;
-    const [p0, p1] = [a, b].map(p => this.worldToImg(p));
-    const x0 = Math.max(0, Math.floor(Math.min(p0[0], p1[0]))), y0 = Math.max(0, Math.floor(Math.min(p0[1], p1[1])));
-    const x1 = Math.min(img.w, Math.ceil(Math.max(p0[0], p1[0]))), y1 = Math.min(img.h, Math.ceil(Math.max(p0[1], p1[1])));
-    if (x1 - x0 < 50 || y1 - y0 < 50) { toast("框太小了，或者没框在户型图上。重新点“识别户型图”再框一次。", true); return; }
-    const k = 1280 / Math.max(x1 - x0, y1 - y0), cw = Math.round((x1 - x0) * k), ch = Math.round((y1 - y0) * k);
-    const btn = this.root.querySelector("#ed-recog") as HTMLButtonElement;
-    const t0 = Date.now(), tick = () => { btn.textContent = `识别中……已等 ${Math.round((Date.now() - t0) / 1000)} 秒`; };
-    btn.disabled = true; tick();
+    let crop: [number, number, number, number] | null = null;
+    if (box) {
+      const [p0, p1] = box.map(p => this.worldToImg(p));
+      const x0 = Math.max(0, Math.floor(Math.min(p0[0], p1[0]))), y0 = Math.max(0, Math.floor(Math.min(p0[1], p1[1])));
+      const x1 = Math.min(img.w, Math.ceil(Math.max(p0[0], p1[0]))), y1 = Math.min(img.h, Math.ceil(Math.max(p0[1], p1[1])));
+      if (x1 - x0 < 50 || y1 - y0 < 50) { toast("框太小了，或者没框在户型图上，再框一次。", true); this.setTool("recog"); return; }
+      crop = [x0, y0, x1, y1];
+    }
+    const s = findSettings(s => !!s.visionModel);
+    if (!s) { this.startRecognize(); return; }
+    this.setTool("select");
+    this.busy = new AbortController();
+    const t0 = Date.now();
+    const tick = () => this.showReview(`<p>识别中……已等 ${Math.round((Date.now() - t0) / 1000)} 秒（一般一两分钟）。按 Esc 可以停止。</p>`);
+    tick();
     const timer = setInterval(tick, 1000);
     try {
       const rec = await loadBg();
-      const bmp = await createImageBitmap(rec!.blob);
-      const c = document.createElement("canvas"); c.width = cw; c.height = ch;
-      const g = c.getContext("2d")!; g.imageSmoothingQuality = "high";
-      g.drawImage(bmp, x0, y0, x1 - x0, y1 - y0, 0, 0, cw, ch);
-      const raw = await recognize(loadSettings(), c.toDataURL("image/jpeg", 0.9), cw, ch);
-      const draft = draftFromRecognition(raw, { offset: [x0, y0], scale: 1 / k, bg: bgInfo }, h.height);
-      if (!draft.walls.length) { toast("没识别出墙。可以把框收紧到你家那一户再试，或者手动描。", true); return; }
-      this.app.store.replace(applyDraft(this.app.store.house, draft), "识别户型图");
-      const n = draft.walls.reduce((s, w) => s + w.openings.length, 0);
-      toast(`识别出 ${draft.walls.length} 面墙、${n} 个门窗、${draft.rooms.length} 个房间${draft.dropped ? `，丢掉 ${draft.dropped} 个对不上的` : ""}。
-这只是草稿，墙的位置常差几十厘米，请对照底图逐面检查；不满意可以撤销。`, false, 9000);
-    } catch (e) { toast((e as Error).message, true); }
-    finally { clearInterval(timer); btn.disabled = false; btn.textContent = "识别户型图（实验）"; }
+      // 先在本地从像素找墙和房间（不花钱，一两秒），把找到的房间、洞口编上号画在图上，再让模型读数字、按编号认房间（花钱，一两分钟）
+      const det = await detectInImage(rec!.blob, crop);
+      const { full, unit, marks } = await prepareImages(rec!.blob, crop, det);
+      const reading = await readPlan(s, full, unit, { marks, signal: this.busy.signal });
+      this.reading = reading; this.detection = det;
+      this.applyReading();
+    } catch (e) {
+      const err = e as Error;
+      this.showReview(err.name === "AbortError" ? "" : `<p class="err">${esc(err.message)}</p><div class="row"><button type="button" class="btn small" data-rv="close">关闭</button></div>`);
+    } finally { clearInterval(timer); this.busy = null; }
+  }
+  /** 把读到的内容（可能改过尺寸数字）整理成草稿，替换当前方案的墙和房间 */
+  private applyReading() {
+    const r = this.reading; if (!r) return;
+    const h = this.app.store.house, b = h.background;
+    let d: Draft;
+    try { d = draftFromReading(r, this.detection, b && b.pxPerMz != null ? { pxPerM: b.pxPerM, pxPerMz: b.pxPerMz } : null, h.height); }
+    catch (e) { this.showReview(`<p class="err">${esc((e as Error).message)}</p><div class="row"><button type="button" class="btn small" data-rv="close">关闭</button></div>`); return; }
+    if (!d.walls.length) { this.showReview(`<p class="err">没识别出房间。可以把框收紧到你家那一户再试，或者手动描。</p><div class="row"><button type="button" class="btn small" data-rv="close">关闭</button></div>`); return; }
+    this.app.store.replace(applyDraft(h, d), "识别户型图");
+    this.fit();
+    const doors = d.walls.reduce((n, w) => n + w.openings.length, 0);
+    const from = { chains: "按图上的尺寸算的", overall: "按总尺寸对外墙算的", areas: "按房间面积估的", manual: "按你标定的" }[d.scaleFrom];
+    const chains = r.chains.map((c, i) => `<label class="rv-chain">${c.dir === "h" ? "横" : "竖"}<input data-chain="${i}" value="${esc(c.mm.map(v => v ?? "?").join(" "))}"></label>`).join("");
+    this.showReview(`
+      <p><b>识别出 ${d.rooms.length} 个房间、${d.walls.length} 面墙、${doors} 个门窗</b>，比例${from}。这是草稿：对照底图看一遍，墙拖端点改，门窗不对可以删掉重放，房间名和类型在右侧改。</p>
+      ${d.problems.length ? `<ul class="rv-problems">${d.problems.map(p => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}
+      ${r.chains.length ? `<details><summary>读到的尺寸（数字读错了可以改，改完点“重算”）</summary><div class="rv-chains">${chains}</div><button type="button" class="btn small" data-rv="redo">重算</button></details>` : ""}
+      <div class="row"><button type="button" class="btn small primary" data-rv="furnish">下一步：布置家具</button><button type="button" class="btn small" data-rv="close">关闭</button></div>`);
+  }
+  /** 识别进度和结果显示在画布左上角的浮层里 */
+  private showReview(html: string) {
+    const box = this.root.querySelector("#ed-review") as HTMLElement;
+    box.hidden = !html; box.innerHTML = html;
   }
   /** 底图上的像素坐标 ↔ 世界坐标 */
   private worldToImg(p: Vec2): Vec2 { const b = this.house.background!; return [p[0] * b.pxPerM + b.origin[0], p[1] * (b.pxPerMz ?? b.pxPerM) + b.origin[1]]; }
@@ -280,7 +349,9 @@ export class Editor {
       <button type="button" class="btn small primary" id="ed-calib-ok">确定</button><button type="button" class="btn small" id="ed-calib-cancel">重新点</button>`;
     box.hidden = false;
     const inp = box.querySelector<HTMLInputElement>("#ed-calib-mm")!;
-    inp.focus();
+    // 这里是在画布的 pointerdown 里调用的，紧接着浏览器处理 mousedown 时会把焦点给画布；
+    // 等这次点击处理完再聚焦，用户点完第二个点就能直接输数字（2026-11-25 实测直接 focus 会被抢走）
+    setTimeout(() => inp.focus(), 0);
     const ok = () => this.finishCalibration(+inp.value / 1000);
     inp.addEventListener("keydown", e => { if (e.key === "Enter") ok(); });
     box.querySelector("#ed-calib-ok")!.addEventListener("click", ok);
@@ -422,7 +493,7 @@ export class Editor {
     }
     if (d.kind === "recog-rect") {
       if (this.tool !== "recog") { this.render(); return; }   // 拖的过程中按了 Esc
-      this.setTool("select"); this.recognizeRect(d.start, this.evWorld(e)); return;
+      this.recognizeBox([d.start, this.evWorld(e)]); return;
     }
     const prev = this.preview; this.preview = null; this.cursor = null;
     if (prev && this.moved) {
@@ -517,6 +588,7 @@ export class Editor {
   /* ---------- 键盘 ---------- */
   private onKey(e: KeyboardEvent) {
     const sel = this.find(this.app.selected);
+    if (e.key === "Escape" && this.busy) { this.busy.abort(); e.preventDefault(); return; }
     if (e.key === "Escape") { if (this.draft.length) this.endDraft(); else if (this.tool !== "select") this.setTool("select"); else this.app.select(null); e.preventDefault(); return; }
     if (e.key === "Enter" && this.draft.length) { if (this.tool === "room" && this.draft.length >= 3) { this.addRoom(this.draft.slice()); } this.endDraft(); return; }
     if ((e.key === "Delete" || e.key === "Backspace") && sel) { e.preventDefault(); deleteById(this.app, this.app.selected!); return; }
@@ -530,6 +602,9 @@ export class Editor {
   /* ---------- 绘制 ---------- */
   render() {
     const svg = this.svg, h = this.house, S = this.S, s = this.view.s;
+    // 标定、透明度、识别这些按钮只对底图有用，没有底图时不显示（点了也只会报“先上传户型图”）。
+    // 底图图片只存一张、不跟方案走：新建的空方案没有底图标定，也不显示
+    (this.root.querySelector("#ed-bgtools") as HTMLElement).hidden = !(this.bg && h.background);
     if (!svg.clientWidth) return;
     (this.root.querySelector("#ed-hint") as HTMLElement).textContent = this.hint();
     const sel = this.app.selected;

@@ -156,12 +156,17 @@ input[type="color"] { width: 40px; height: 30px; padding: 0 2px; border: 1px sol
 .ed-opt select { width: auto; max-width: 14em; }
 .ed-bgopt input { width: 90px; }
 .ed-sep { width: 1px; height: 22px; background: var(--line); }
-.ed-calib { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--ai-soft); border: 1px solid var(--ai); border-radius: 8px; padding: 8px 12px; flex: none; }
+.ed-bgtools { display: contents; }
+/* 浮在画布左上角：提示、当前工具的选项、标定输入。本身不挡鼠标，里面能操作的控件才接收点击 */
+.ed-float { position: absolute; left: 10px; top: 10px; right: 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
+.ed-float > .ed-opt, .ed-float > .ed-calib { pointer-events: auto; }
+.ed-float > .ed-opt { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.ed-calib { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--ai-soft); border: 1px solid var(--ai); border-radius: 8px; padding: 8px 12px; box-shadow: 0 4px 16px rgb(0 0 0 / 0.12); }
 .ed-calib input { width: 8em; display: inline-block; }
 .ed-canvas { position: relative; flex: 1; min-height: 360px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
 .ed-canvas svg { display: block; width: 100%; height: 100%; user-select: none; touch-action: none; }
 .ed-canvas svg:focus { outline: none; }
-.ed-hint { position: absolute; left: 10px; top: 10px; right: 10px; pointer-events: none; font-size: 12.5px; color: var(--muted); background: color-mix(in srgb, var(--card) 88%, transparent); border-radius: 6px; padding: 3px 8px; width: fit-content; max-width: calc(100% - 20px); }
+.ed-hint { pointer-events: none; font-size: 12.5px; color: var(--muted); background: color-mix(in srgb, var(--card) 88%, transparent); border-radius: 6px; padding: 3px 8px; width: fit-content; max-width: calc(100% - 20px); }
 .ed-grid { stroke: var(--line); stroke-width: 1; fill: none; opacity: 0.6; }
 .ed-room { fill: color-mix(in srgb, var(--oak-soft) 55%, transparent); stroke: var(--oak); stroke-width: 1; stroke-dasharray: 4 3; }
 .ed-room.t-kitchen, .ed-room.t-bath { fill: color-mix(in srgb, var(--ai-soft) 70%, transparent); }
@@ -224,6 +229,8 @@ input[type="color"] { width: 40px; height: 30px; padding: 0 2px; border: 1px sol
 .chat-quick { flex-wrap: wrap; overflow: visible; }
 .chat-quick .chip { white-space: normal; text-align: left; font-size: 12.5px; }
 .chat-input { display: flex; flex-direction: column; gap: 6px; }
+/* 快捷提问和输入框贴在面板底部：没填 Key 时设置区默认展开，1440×900 下输入框会被挤到首屏外（2026-11-25 实测） */
+.chat-foot { position: sticky; bottom: -20px; margin-bottom: -20px; padding: 8px 0 20px; background: var(--card); display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); }
 
 /* 清单面板 */
 .facts { display: flex; flex-wrap: wrap; gap: 8px 24px; }
@@ -244,3 +251,15 @@ input[type="color"] { width: 40px; height: 30px; padding: 0 2px; border: 1px sol
 .bd-price input { text-align: right; font-family: var(--f-mono); padding: 2px 6px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .check { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+/* 识别进度和结果（浮在 2D 画布左上角） */
+.ed-float > .ed-review, .ed-float > #ed-whole { pointer-events: auto; }
+.ed-review { background: var(--card); border: 1px solid var(--ai); border-radius: 10px; padding: 10px 12px; max-width: min(520px, 100%); box-shadow: 0 6px 24px rgb(0 0 0 / 0.14); font-size: 13px; display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow: auto; }
+.ed-review p { margin: 0; }
+.ed-review .err { color: var(--warn); }
+.rv-problems { margin: 0; padding-left: 18px; color: var(--warn); }
+.rv-chains { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.rv-chain { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.rv-chain input { flex: 1; font-family: var(--f-mono); font-size: 12px; }
+.furnish-dlg { width: min(560px, calc(100vw - 24px)); }
+.furnish-dlg textarea { width: 100%; }
+.fd-check { display: flex; gap: 6px; align-items: center; font-size: 13px; }
